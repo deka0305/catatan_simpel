@@ -68,19 +68,19 @@ class _AddNotePageState extends State<AddNotePage> {
                   tooltip: 'Ceklis',
                   icon: const Icon(Icons.check_box_outlined,
                       color: Color(0xFFF4B41A)),
-                  onPressed: () => _insertSymbol('✔ '),
+                  onPressed: () => _insertLinePrefix('✔ '),
                 ),
                 IconButton(
                   tooltip: 'Bullet',
                   icon: const Icon(Icons.circle,
                       size: 18, color: Color(0xFFF4B41A)),
-                  onPressed: () => _insertSymbol('• '),
+                  onPressed: () => _insertLinePrefix('• '),
                 ),
                 IconButton(
                   tooltip: 'Urutan',
                   icon: const Icon(Icons.format_list_numbered,
                       color: Color(0xFFF4B41A)),
-                  onPressed: () => _insertNumberedList(),
+                  onPressed: _insertNumberedList,
                 ),
               ],
             ),
@@ -99,25 +99,46 @@ class _AddNotePageState extends State<AddNotePage> {
     );
   }
 
-  void _insertSymbol(String symbol) {
+  void _insertLinePrefix(String prefix) {
     final text = _contentController.text;
     final selection = _contentController.selection;
-    final newText = text.replaceRange(selection.start, selection.end, symbol);
+    final lines = text.split('\n');
+    int currentLineIndex =
+        text.substring(0, selection.start).split('\n').length - 1;
+    if (currentLineIndex < 0 || currentLineIndex >= lines.length) return;
+    final line = lines[currentLineIndex];
+    if (line.startsWith(prefix)) return;
+    lines[currentLineIndex] = prefix + line;
+    final newText = lines.join('\n');
+    int newOffset = selection.start + prefix.length;
     _contentController.text = newText;
-    _contentController.selection =
-        TextSelection.collapsed(offset: selection.start + symbol.length);
+    _contentController.selection = TextSelection.collapsed(offset: newOffset);
   }
 
   void _insertNumberedList() {
     final text = _contentController.text;
     final selection = _contentController.selection;
-    // Cari baris saat ini
-    final lines = text.substring(0, selection.start).split('\n');
-    final currentLine = lines.length;
-    final symbol = '$currentLine. ';
-    final newText = text.replaceRange(selection.start, selection.end, symbol);
+    final lines = text.split('\n');
+    int currentLineIndex =
+        text.substring(0, selection.start).split('\n').length - 1;
+    if (currentLineIndex < 0 || currentLineIndex >= lines.length) return;
+    final line = lines[currentLineIndex];
+    // Cari nomor urut otomatis
+    int number = 1;
+    for (int i = 0; i < currentLineIndex; i++) {
+      final l = lines[i];
+      final match = RegExp(r'^(\d+)\. ').firstMatch(l);
+      if (match != null) {
+        final n = int.tryParse(match.group(1)!);
+        if (n != null && n >= number) number = n + 1;
+      }
+    }
+    final prefix = '$number. ';
+    if (line.startsWith(prefix)) return;
+    lines[currentLineIndex] = prefix + line;
+    final newText = lines.join('\n');
+    int newOffset = selection.start + prefix.length;
     _contentController.text = newText;
-    _contentController.selection =
-        TextSelection.collapsed(offset: selection.start + symbol.length);
+    _contentController.selection = TextSelection.collapsed(offset: newOffset);
   }
 }
