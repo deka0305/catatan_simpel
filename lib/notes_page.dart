@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'db_helper.dart';
 import 'models.dart';
 import 'add_note_page.dart';
@@ -301,6 +302,10 @@ class _NotesPageState extends State<NotesPage> {
                                 if (result == true) {
                                   _loadNotes();
                                 }
+                              },
+                              onLongPress: () {
+                                final text = '${note.title}\n\n${note.content}';
+                                Share.share(text);
                               },
                             ),
                           ),
