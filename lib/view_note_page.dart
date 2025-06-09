@@ -4,7 +4,8 @@ import 'models.dart';
 
 class ViewNotePage extends StatefulWidget {
   final Note note;
-  const ViewNotePage({super.key, required this.note});
+  final bool isEditing; // Tambahkan ini
+  const ViewNotePage({super.key, required this.note, this.isEditing = false}); // Ubah ini
 
   @override
   State<ViewNotePage> createState() => _ViewNotePageState();
@@ -13,13 +14,14 @@ class ViewNotePage extends StatefulWidget {
 class _ViewNotePageState extends State<ViewNotePage> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
-  bool _isEditing = false;
+  late bool _isEditing; // Ubah jadi late
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.note.title);
     _contentController = TextEditingController(text: widget.note.content);
+    _isEditing = widget.isEditing; // Inisialisasi dari parameter
   }
 
   void _saveEdit() async {

@@ -83,14 +83,42 @@ class _TasksPageState extends State<TasksPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF143D59), // Navy blue
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Tugas'),
+      backgroundColor: const Color(0xFFFFF5E4), // Cream background
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addTask,
+        backgroundColor: const Color(0xFFF4B41A),
+        foregroundColor: const Color(0xFF143D59),
+        elevation: 7,
+        child: const Icon(Icons.add, size: 32),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        tooltip: 'Tambah Tugas',
       ),
       body: Column(
         children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+          
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Color(0xFFF4B41A), size: 30),
+                const SizedBox(width: 5),
+                const Text(
+                  'Daftar Tugas',
+                  style: TextStyle(
+                    color: Color(0xFF143D59),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: tasks.isEmpty
                 ? Center(
@@ -100,79 +128,107 @@ class _TasksPageState extends State<TasksPage> {
                     ),
                   )
                 : ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     itemCount: tasks.length,
-                    separatorBuilder: (context, i) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Divider(
-                        color: Color(0xFFF4B41A), // Yellow
-                        thickness: 1.2,
-                        height: 8,
-                      ),
-                    ),
+                    separatorBuilder: (context, i) => const SizedBox(height: 8),
                     itemBuilder: (context, i) {
                       final task = tasks[i];
                       return Card(
-                        color: Color(0xFFFFF5E4), // Cream background
-                        elevation: 2,
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                        color: Colors.white,
+                        elevation: 4,
+                        margin: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          leading: GestureDetector(
+                            onTap: () => _toggleDone(task),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: task.isDone ? Color(0xFFF4B41A) : Colors.transparent,
+                                border: Border.all(
+                                  color: Color(0xFFF4B41A),
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: task.isDone
+                                  ? const Icon(Icons.check, size: 18, color: Color(0xFF143D59))
+                                  : null,
+                            ),
+                          ),
                           title: Text(
                             task.title,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 17,
-                              color: Color(0xFF143D59), // Navy blue
-                              decoration: task.isDone
-                                  ? TextDecoration.lineThrough
-                                  : null,
+                              color: Color(0xFF143D59),
+                              decoration: task.isDone ? TextDecoration.lineThrough : null,
                             ),
                           ),
-                          subtitle: Text(
-                            task.description,
-                            style: TextStyle(
-                              color: Color(0xFFB0A295),
-                              decoration: task.isDone
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                            ),
-                          ),
-                          leading: Checkbox(
-                            value: task.isDone,
-                            onChanged: (_) => _toggleDone(task),
-                            activeColor: Color(0xFFF4B41A), // Yellow
+                          subtitle: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  task.description,
+                                  style: TextStyle(
+                                    color: Color(0xFFB0A295),
+                                    decoration: task.isDone ? TextDecoration.lineThrough : null,
+                                  ),
+                                ),
+                              ),
+                              if (task.isDone)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFB0E57C),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Selesai',
+                                    style: TextStyle(
+                                      color: Color(0xFF143D59),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFF4B41A).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Belum',
+                                    style: TextStyle(
+                                      color: Color(0xFF143D59),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.delete,
-                                color: Color(0xFFF4B41A)),
+                            icon: const Icon(Icons.delete, color: Color(0xFFF4B41A)),
                             onPressed: () => _deleteTask(task.id!),
+                            tooltip: 'Hapus',
                           ),
                         ),
                       );
                     },
                   ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: FloatingActionButton.extended(
-              onPressed: _addTask,
-              label: const Text('Tambah Tugas'),
-              icon: const Icon(Icons.add_task),
-              backgroundColor: Color(0xFFF4B41A), // Yellow
-              foregroundColor: Color(0xFF143D59), // Navy blue
-            ),
-          ),
         ],
       ),
-      // bottomNavigationBar: BottomAppBar(
-      // color: const Color(0xFF143D59), // Navy blue
-      // child: SizedBox(height: 56),
-      // ),
     );
   }
 }

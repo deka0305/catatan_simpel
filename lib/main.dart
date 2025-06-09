@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'notes_page.dart';
 import 'tasks_page.dart';
@@ -45,6 +46,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(),
+      debugShowCheckedModeBanner: kDebugMode ? false : true,
     );
   }
 }
@@ -58,7 +60,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-
   final List<Widget> _pages = [
     NotesPage(),
     TasksPage(),
@@ -69,8 +70,10 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_selectedIndex == 0 ? 'Catatan' : 'Tugas'),
+        backgroundColor: Color(0xFF143D59),
       ),
-      body: _pages[_selectedIndex],
+      body: _pages[
+          _selectedIndex], // Jangan pakai Scaffold lagi di NotesPage/TasksPage
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
