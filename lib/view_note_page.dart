@@ -5,7 +5,8 @@ import 'models.dart';
 class ViewNotePage extends StatefulWidget {
   final Note note;
   final bool isEditing; // Tambahkan ini
-  const ViewNotePage({super.key, required this.note, this.isEditing = false}); // Ubah ini
+  const ViewNotePage(
+      {super.key, required this.note, this.isEditing = false}); // Ubah ini
 
   @override
   State<ViewNotePage> createState() => _ViewNotePageState();
@@ -134,15 +135,56 @@ class _ViewNotePageState extends State<ViewNotePage> {
         TextSelection.collapsed(offset: selection.start + symbol.length);
   }
 
+  void _insertLinePrefix(String prefix) {
+    final text = _contentController.text;
+    final selection = _contentController.selection;
+    final lines = text.split('\n');
+    int currentLineIndex =
+        text.substring(0, selection.start).split('\n').length - 1;
+    if (currentLineIndex < 0 || currentLineIndex >= lines.length) return;
+    final line = lines[currentLineIndex];
+    if (line.startsWith(prefix)) return;
+    lines[currentLineIndex] =
+        prefix + line.replaceFirst(RegExp(r'^(✔ |• |\d+\. )'), '');
+    final newText = lines.join('\n');
+    int newOffset = selection.start + prefix.length;
+    _contentController.text = newText;
+    _contentController.selection = TextSelection.collapsed(offset: newOffset);
+  }
+
   void _insertNumberedList() {
     final text = _contentController.text;
     final selection = _contentController.selection;
-    final lines = text.substring(0, selection.start).split('\n');
-    final currentLine = lines.length;
-    final symbol = '$currentLine. ';
-    final newText = text.replaceRange(selection.start, selection.end, symbol);
+    final lines = text.split('\n');
+    int currentLineIndex =
+        text.substring(0, selection.start).split('\n').length - 1;
+    if (currentLineIndex < 0 || currentLineIndex >= lines.length) return;
+    // Hitung nomor urut berdasarkan baris sebelumnya yang sudah ada nomor
+    int number = 1;
+    for (int i = currentLineIndex - 1; i >= 0; i--) {
+      final l = lines[i];
+      final match = RegExp(r'^(\d+)\. ').firstMatch(l);
+      if (match != null) {
+        final n = int.tryParse(match.group(1)!);
+        if (n != null) {
+          number = n + 1;
+          break;
+        }
+      }
+    }
+    // Jika baris sudah ada nomor, ganti dengan nomor baru
+    final line = lines[currentLineIndex];
+    final lineWithoutNumber = line.replaceFirst(RegExp(r'^(✔ |• |\d+\. )'), '');
+    final prefix = '$number. ';
+    lines[currentLineIndex] = prefix + lineWithoutNumber;
+    final newText = lines.join('\n');
+    // Hitung offset baru setelah prefix
+    int lineStart = 0;
+    for (int i = 0; i < currentLineIndex; i++) {
+      lineStart += lines[i].length + 1; // +1 for \n
+    }
+    int newOffset = lineStart + prefix.length;
     _contentController.text = newText;
-    _contentController.selection =
-        TextSelection.collapsed(offset: selection.start + symbol.length);
+    _contentController.selection = TextSelection.collapsed(offset: newOffset);
   }
 }
