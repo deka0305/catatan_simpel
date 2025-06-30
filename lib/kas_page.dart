@@ -124,38 +124,45 @@ class _KasPageState extends State<KasPage> {
                     const SizedBox(height: 14),
                     Row(
                       children: [
-                        Expanded(
-                          child: RadioListTile<bool>(
-                            value: true,
-                            groupValue: isMasuk,
-                            title: const Text('Masuk',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            activeColor: Color(0xFF4CAF50),
-                            tileColor: isMasuk
-                                ? Color(0xFFB0E57C).withOpacity(0.3)
-                                : null,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                            onChanged: (v) =>
-                                setStateDialog(() => isMasuk = true),
-                          ),
+                      Expanded(
+                        child: RadioListTile<bool>(
+                        value: true,
+                        groupValue: isMasuk,
+                        title: const Text('Masuk',
+                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                        activeColor: Color(0xFF4CAF50),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        tileColor: isMasuk
+                          ? Color(0xFFB0E57C).withOpacity(0.2)
+                          : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                        onChanged: (v) =>
+                          setStateDialog(() => isMasuk = true),
                         ),
-                        Expanded(
-                          child: RadioListTile<bool>(
-                            value: false,
-                            groupValue: isMasuk,
-                            title: const Text('Keluar',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            activeColor: Color(0xFFF44336),
-                            tileColor: !isMasuk
-                                ? Color(0xFFFFC1C1).withOpacity(0.3)
-                                : null,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                            onChanged: (v) =>
-                                setStateDialog(() => isMasuk = false),
-                          ),
+                      ),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: RadioListTile<bool>(
+                        value: false,
+                        groupValue: isMasuk,
+                        title: const Text('Keluar',
+                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                        activeColor: Color(0xFFF44336),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                        tileColor: !isMasuk
+                          ? Color(0xFFFFC1C1).withOpacity(0.2)
+                          : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                        onChanged: (v) =>
+                          setStateDialog(() => isMasuk = false),
                         ),
+                      ),
                       ],
                     ),
                     const SizedBox(height: 10),
