@@ -393,6 +393,27 @@ class _KasPageState extends State<KasPage> {
                     fontSize: 28,
                   ),
                 ),
+                Row(
+                  children: [
+                  Expanded(
+                    child: Text(
+                      'Total Kas Hari Ini',
+                      style: const TextStyle(
+                        color: Color(0xFFB0A295),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                    'Total Balance: Rp ${NumberFormat('#,##0', 'id_ID').format(totalKas)}',
+                  style: const TextStyle(
+                    color: Color(0xFFB0A295),
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           ),
