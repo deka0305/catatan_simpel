@@ -17,7 +17,28 @@ class DatabaseHelper {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    // Jangan hapus database di produksi!
+    // await deleteDatabase(path); // Untuk development/testing saja
+    return await openDatabase(
+      path,
+      version: 2, // Naikkan versi jika ada perubahan struktur
+      onCreate: _createDB,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Buat tabel kas jika upgrade dari versi sebelumnya
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS kas (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              keterangan TEXT NOT NULL,
+              jumlah INTEGER NOT NULL,
+              isMasuk INTEGER NOT NULL,
+              tanggal TEXT NOT NULL
+            )
+          ''');
+        }
+        // Tambahkan migrasi lain jika ada versi lebih tinggi
+      },
+    );
   }
 
   Future _createDB(Database db, int version) async {
@@ -42,6 +63,15 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         description TEXT,
         isDone INTEGER NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE kas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        keterangan TEXT NOT NULL,
+        jumlah INTEGER NOT NULL,
+        isMasuk INTEGER NOT NULL,
+        tanggal TEXT NOT NULL
       )
     ''');
   }
@@ -114,5 +144,29 @@ class DatabaseHelper {
   Future<int> deleteTask(int id) async {
     final db = await instance.database;
     return await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // CRUD Kas
+  Future<int> insertKas(Kas kas) async {
+    final db = await instance.database;
+    final map = kas.toMap();
+    map.remove('id'); // pastikan id tidak dikirim saat insert
+    return await db.insert('kas', map);
+  }
+
+  Future<int> updateKas(Kas kas) async {
+    final db = await instance.database;
+    return await db.update('kas', kas.toMap(), where: 'id = ?', whereArgs: [kas.id]);
+  }
+
+  Future<List<Kas>> getKasList() async {
+    final db = await instance.database;
+    final result = await db.query('kas', orderBy: 'tanggal DESC');
+    return result.map((e) => Kas.fromMap(e)).toList();
+  }
+
+  Future<int> deleteKas(int id) async {
+    final db = await instance.database;
+    return await db.delete('kas', where: 'id = ?', whereArgs: [id]);
   }
 }

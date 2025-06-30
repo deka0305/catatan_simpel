@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'notes_page.dart';
 import 'tasks_page.dart';
+import 'kas_page.dart'; // Import KasPage
 
 void main() {
   runApp(const MyApp());
@@ -64,15 +65,13 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     NotesPage(),
     TasksPage(),
+    KasPage(), // Tambahkan KasPage di sini
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_selectedIndex == 0 ? 'Catatan' : 'Tugas'),
-        backgroundColor: Color(0xFF143D59),
-      ),
+      
       body: _pages[
           _selectedIndex], // Jangan pakai Scaffold lagi di NotesPage/TasksPage
       bottomNavigationBar: BottomNavigationBar(
@@ -83,8 +82,9 @@ class _HomePageState extends State<HomePage> {
           });
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.folder), label: 'Catatan'),
+          BottomNavigationBarItem(icon: Icon(Icons.note), label: 'Catatan'),
           BottomNavigationBarItem(icon: Icon(Icons.checklist), label: 'Tugas'),
+          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Kas'),
         ],
       ),
     );

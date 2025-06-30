@@ -83,3 +83,40 @@ class Task {
     );
   }
 }
+
+// Model untuk Kas
+class Kas {
+  int? id;
+  String keterangan;
+  int jumlah;
+  bool isMasuk; // true: masuk, false: keluar
+  DateTime tanggal;
+
+  Kas({
+    this.id,
+    required this.keterangan,
+    required this.jumlah,
+    required this.isMasuk,
+    required this.tanggal,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'keterangan': keterangan,
+      'jumlah': jumlah,
+      'isMasuk': isMasuk ? 1 : 0,
+      'tanggal': tanggal.toIso8601String(),
+    };
+  }
+
+  factory Kas.fromMap(Map<String, dynamic> map) {
+    return Kas(
+      id: map['id'],
+      keterangan: map['keterangan'],
+      jumlah: map['jumlah'],
+      isMasuk: map['isMasuk'] == 1,
+      tanggal: DateTime.parse(map['tanggal']),
+    );
+  }
+}
