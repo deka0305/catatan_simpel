@@ -393,22 +393,22 @@ class _KasPageState extends State<KasPage> {
                     fontSize: 28,
                   ),
                 ),
-                Row(
+                const Row(
                   children: [
-                  Expanded(
-                    child: Text(
-                      'Total Kas Hari Ini',
-                      style: const TextStyle(
-                        color: Color(0xFFB0A295),
-                        fontSize: 16,
+                    Expanded(
+                      child: Text(
+                        'Total Kas Hari Ini',
+                        style: TextStyle(
+                          color: Color(0xFFB0A295),
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                    'Total Balance: Rp ${NumberFormat('#,##0', 'id_ID').format(totalKas)}',
+                  'Total Balance: Rp ${NumberFormat('#,##0', 'id_ID').format(totalKas)}',
                   style: const TextStyle(
                     color: Color(0xFFB0A295),
                     fontSize: 14,
@@ -780,8 +780,8 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
     return Scaffold(
         appBar: AppBar(
           title: const Text('Laporan Bulanan'),
-          backgroundColor: const Color(0xFF143D59),
-          actions: [
+            backgroundColor: const Color(0xFF143D59),
+            actions: [
             IconButton(
               icon: const Icon(Icons.chevron_left),
               tooltip: 'Bulan sebelumnya',
@@ -801,38 +801,43 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
               icon: const Icon(Icons.share),
               tooltip: 'Bagikan',
               onPressed: () async {
-                final kasList = await DatabaseHelper.instance.getKasList();
-                final bulanKas = kasList
-                    .where((k) =>
-                        k.tanggal.year == selectedMonth.year &&
-                        k.tanggal.month == selectedMonth.month)
-                    .toList();
-                if (bulanKas.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Tidak ada data kas bulan ini')),
-                  );
-                  return;
-                }
-                final buffer = StringBuffer();
-                buffer.writeln(
-                    'Laporan Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(selectedMonth)}');
-                buffer.writeln('----------------------------------------');
-                for (final kas in bulanKas) {
-                  buffer.writeln(
-                    '${DateFormat('dd/MM/yyyy').format(kas.tanggal)} | ${kas.keterangan} | Rp ${kas.jumlah} | ${kas.isMasuk ? "Masuk" : "Keluar"}',
-                  );
-                }
-                final total = bulanKas.fold(
-                    0, (sum, k) => sum + (k.isMasuk ? k.jumlah : -k.jumlah));
-                buffer.writeln('----------------------------------------');
-                buffer.writeln(
-                    'Total: Rp ${NumberFormat('#,##0', 'id_ID').format(total)}');
-                await Share.share(buffer.toString());
+              final kasList = await DatabaseHelper.instance.getKasList();
+              final bulanKas = kasList
+              .where((k) =>
+                k.tanggal.year == selectedMonth.year &&
+                k.tanggal.month == selectedMonth.month)
+              .toList();
+              if (bulanKas.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Tidak ada data kas bulan ini')),
+              );
+              return;
+              }
+              final buffer = StringBuffer();
+              buffer.writeln('📅 Laporan Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(selectedMonth)}');
+              buffer.writeln('========================================');
+              buffer.writeln('|   Tanggal   |   Keterangan   |   Masuk/Keluar   |     Jumlah    |');
+              buffer.writeln('----------------------------------------');
+              for (final kas in bulanKas) {
+              final tgl = DateFormat('dd/MM/yyyy').format(kas.tanggal);
+              final ket = kas.keterangan.length > 15
+                ? kas.keterangan.substring(0, 15) + '…'
+                : kas.keterangan.padRight(15);
+              final tipe = kas.isMasuk ? 'Masuk ' : 'Keluar';
+              final jumlah = NumberFormat('#,##0', 'id_ID').format(kas.jumlah).padLeft(10);
+              buffer.writeln('| $tgl | $ket | ${tipe.padRight(7)} | Rp $jumlah |');
+              }
+              buffer.writeln('----------------------------------------');
+              final total = bulanKas.fold(
+              0, (sum, k) => sum + (k.isMasuk ? k.jumlah : -k.jumlah));
+              buffer.writeln('Total Saldo: Rp ${NumberFormat('#,##0', 'id_ID').format(total)}');
+              buffer.writeln('========================================');
+              await Share.share(buffer.toString());
               },
             ),
-          ],
-        ),
+            ],
+          ),
         body: FutureBuilder<List<Kas>>(
           future: DatabaseHelper.instance.getKasList(),
           builder: (context, snapshot) {
