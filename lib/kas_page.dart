@@ -750,13 +750,25 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
       ),
     );
     if (picked != null) {
+      // Ambil hanya tahun dan bulan, tanggal di-set ke 1
       setState(() => selectedMonth = DateTime(picked.year, picked.month));
     }
   }
 
   void _slideMonth(int delta) {
     setState(() {
-      selectedMonth = DateTime(selectedMonth.year, selectedMonth.month + delta);
+      // Perbaiki logika agar tidak keluar dari rentang bulan valid
+      int year = selectedMonth.year;
+      int month = selectedMonth.month + delta;
+      while (month < 1) {
+        month += 12;
+        year--;
+      }
+      while (month > 12) {
+        month -= 12;
+        year++;
+      }
+      selectedMonth = DateTime(year, month);
     });
   }
 
@@ -806,10 +818,56 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
               tooltip: 'Pilih Bulan',
               onPressed: _pickMonth,
             ),
+            // IconButton(
+            //   icon: const Icon(Icons.share),
+            //   tooltip: 'Bagikan',
+            //   iconSize: 20,
+            //   onPressed: () async {
+            //     final kasList = await DatabaseHelper.instance.getKasList();
+            //     final bulanKas = kasList
+            //         .where((k) =>
+            //             k.tanggal.year == selectedMonth.year &&
+            //             k.tanggal.month == selectedMonth.month)
+            //         .toList();
+            //     if (bulanKas.isEmpty) {
+            //       ScaffoldMessenger.of(context).showSnackBar(
+            //         const SnackBar(
+            //           content: Text('Tidak ada data kas bulan ini',
+            //               style: TextStyle(fontSize: 13)),
+            //         ),
+            //       );
+            //       return;
+            //     }
+            //     final buffer = StringBuffer();
+            //     buffer.writeln(
+            //         '📅 Laporan Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(selectedMonth)}');
+            //     buffer.writeln('==============================');
+            //     for (final kas in bulanKas) {
+            //       final tgl = DateFormat('dd MMM yyyy', 'id_ID')
+            //           .format(kas.tanggal)
+            //           .padRight(15);
+            //       final ket = kas.keterangan.length > 9
+            //           ? kas.keterangan.substring(0, 12) + '…'
+            //           : kas.keterangan.padRight(13);
+            //       final tipe = kas.isMasuk ? 'Masuk ' : 'Keluar';
+            //       final jumlah = NumberFormat('#,##0', 'id_ID')
+            //           .format(kas.jumlah)
+            //           .padLeft(10);
+            //       buffer.writeln(
+            //           'Tanggal: $tgl $tipe\nKeterangan: ${ket.substring(0, ket.length > 7 ? 7 : ket.length)}\nJumlah: Rp $jumlah\n');
+            //     }
+            //     buffer.writeln('---------------------------------');
+            //     final total = bulanKas.fold(
+            //         0, (sum, k) => sum + (k.isMasuk ? k.jumlah : -k.jumlah));
+            //     buffer.writeln(
+            //         'Total Saldo: Rp ${NumberFormat('#,##0', 'id_ID').format(total)}');
+            //     await Share.share(buffer.toString());
+            //   },
+            // ),
             IconButton(
-              icon: const Icon(Icons.share),
-              tooltip: 'Bagikan',
-              iconSize: 20, // perkecil ukuran icon
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'Bagikan Semua Data Bulan Ini',
+              iconSize: 20,
               onPressed: () async {
                 final kasList = await DatabaseHelper.instance.getKasList();
                 final bulanKas = kasList
@@ -821,34 +879,31 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Tidak ada data kas bulan ini',
-                          style: TextStyle(fontSize: 13)), // kecilkan font
+                          style: TextStyle(fontSize: 12)),
                     ),
                   );
                   return;
                 }
                 final buffer = StringBuffer();
                 buffer.writeln(
-                    '📅 Laporan Kas Bulan ${DateFormat('MMMM yyyy', 'id_ID').format(selectedMonth)}');
+                    '📅 DATA KAS BULAN ${DateFormat('MMMM yyyy', 'id_ID').format(selectedMonth)}');
                 buffer.writeln('==============================');
                 for (final kas in bulanKas) {
-                  final tgl = DateFormat('dd MMM yyyy', 'id_ID')
-                      .format(kas.tanggal)
-                      .padRight(15);
-                  final ket = kas.keterangan.length > 9
-                      ? kas.keterangan.substring(0, 12) + '…'
-                      : kas.keterangan.padRight(13);
-                  final tipe = kas.isMasuk ? 'Masuk ' : 'Keluar';
-                  final jumlah = NumberFormat('#,##0', 'id_ID')
-                      .format(kas.jumlah)
-                      .padLeft(10);
-                  buffer.writeln(
-                      'Tanggal: $tgl $tipe\nKeterangan: ${ket.substring(0, ket.length > 7 ? 7 : ket.length)}\nJumlah: Rp $jumlah\n');
+                  final tgl =
+                      DateFormat('dd MMM yyyy', 'id_ID').format(kas.tanggal);
+                  final tipe = kas.isMasuk ? 'Masuk' : 'Keluar';
+                  final jumlah =
+                      NumberFormat('#,##0', 'id_ID').format(kas.jumlah);
+                  buffer.writeln('Tanggal: $tgl');
+                  buffer.writeln('Keterangan: ${kas.keterangan}');
+                  buffer.writeln('Tipe: $tipe');
+                  buffer.writeln('Jumlah: Rp $jumlah');
+                  buffer.writeln('------------------------------');
                 }
-                buffer.writeln('---------------------------------');
                 final total = bulanKas.fold(
                     0, (sum, k) => sum + (k.isMasuk ? k.jumlah : -k.jumlah));
                 buffer.writeln(
-                    'Total Saldo: Rp ${NumberFormat('#,##0', 'id_ID').format(total)}');
+                    'TOTAL SALDO BULAN INI: Rp ${NumberFormat('#,##0', 'id_ID').format(total)}');
                 await Share.share(buffer.toString());
               },
             ),
