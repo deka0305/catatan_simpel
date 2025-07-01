@@ -269,6 +269,271 @@ class _KasPageState extends State<KasPage> {
       ),
     );
   }
+  void _goToLaporanHarian() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LaporanHarianPage()),
+    );
+  }
+
+  void _goToLaporanBulanan() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LaporanBulananPage()),
+    );
+  }
+
+  void _showMultiInputKas() async {
+    final _formKey = GlobalKey<FormState>();
+    List<TextEditingController> keteranganControllers = [TextEditingController()];
+    List<TextEditingController> jumlahControllers = [TextEditingController()];
+    bool isMasuk = true;
+    DateTime tanggal = DateTime.now();
+
+    await showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) => Container(
+            width: double.infinity,
+            constraints: BoxConstraints(
+              maxWidth: 500,
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF5E4),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) => Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.playlist_add, color: Color(0xFFF4B41A), size: 28),
+                          const SizedBox(width: 10),
+                          const Text('Input Kas Banyak',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF143D59)),
+                          ),
+                          const Spacer(),
+                          CircleAvatar(
+                            backgroundColor: Colors.red[50],
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: RadioListTile<bool>(
+                              value: true,
+                              groupValue: isMasuk,
+                              title: const Text('Masuk', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                              activeColor: Color(0xFF4CAF50),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              tileColor: isMasuk ? Color(0xFFB0E57C).withOpacity(0.2) : null,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              onChanged: (v) => setStateDialog(() => isMasuk = true),
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: RadioListTile<bool>(
+                              value: false,
+                              groupValue: isMasuk,
+                              title: const Text('Keluar', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                              activeColor: Color(0xFFF44336),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              tileColor: !isMasuk ? Color(0xFFFFC1C1).withOpacity(0.2) : null,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              onChanged: (v) => setStateDialog(() => isMasuk = false),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.date_range, color: Color(0xFF143D59)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(tanggal),
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.edit_calendar, color: Color(0xFFF4B41A)),
+                            label: const Text('Pilih Tanggal'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Color(0xFF143D59),
+                              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: tanggal,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                                builder: (context, child) => Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF143D59),
+                                      onPrimary: Colors.white,
+                                      surface: Color(0xFFFFF5E4),
+                                    ),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (picked != null) {
+                                setStateDialog(() => tanggal = picked);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: keteranganControllers.length,
+                        itemBuilder: (context, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: TextFormField(
+                                  controller: keteranganControllers[i],
+                                  decoration: InputDecoration(
+                                    labelText: 'Keterangan',
+                                    prefixIcon: const Icon(Icons.description, color: Color(0xFF143D59)),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                  ),
+                                  style: const TextStyle(fontSize: 14),
+                                  validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                                  maxLines: 1,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                flex: 3,
+                                child: TextFormField(
+                                  controller: jumlahControllers[i],
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: 'Jumlah',
+                                    prefixIcon: const Icon(Icons.attach_money, color: Color(0xFFF4B41A)),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                  ),
+                                  style: const TextStyle(fontSize: 14),
+                                  validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                                  maxLines: 1,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                tooltip: 'Hapus Baris',
+                                onPressed: keteranganControllers.length > 1
+                                    ? () {
+                                        setStateDialog(() {
+                                          keteranganControllers.removeAt(i);
+                                          jumlahControllers.removeAt(i);
+                                        });
+                                      }
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.add_circle, color: Color(0xFF4CAF50)),
+                          label: const Text('Tambah Baris'),
+                          style: TextButton.styleFrom(foregroundColor: Color(0xFF143D59)),
+                          onPressed: () {
+                            setStateDialog(() {
+                              keteranganControllers.add(TextEditingController());
+                              jumlahControllers.add(TextEditingController());
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.save, color: Color(0xFF143D59)),
+                          label: const Text('Simpan Semua'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFFF4B41A),
+                            foregroundColor: Color(0xFF143D59),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+                              for (int i = 0; i < keteranganControllers.length; i++) {
+                                final kasBaru = Kas(
+                                  keterangan: keteranganControllers[i].text,
+                                  jumlah: int.tryParse(jumlahControllers[i].text) ?? 0,
+                                  isMasuk: isMasuk,
+                                  tanggal: tanggal,
+                                );
+                                await DatabaseHelper.instance.insertKas(kasBaru);
+                              }
+                              Navigator.pop(context);
+                              await _loadKas();
+                              setState(() {
+                                today = DateTime.now();
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _deleteKas(int id) async {
     await DatabaseHelper.instance.deleteKas(id);
@@ -297,19 +562,19 @@ class _KasPageState extends State<KasPage> {
         0, (sum, k) => sum + (k.isMasuk ? k.jumlah : -k.jumlah));
   }
 
-  void _goToLaporanHarian() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LaporanHarianPage()),
-    );
-  }
+  // void _goToLaporanHarian() {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(builder: (context) => const LaporanHarianPage()),
+  //   );
+  // }
 
-  void _goToLaporanBulanan() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LaporanBulananPage()),
-    );
-  }
+  // void _goToLaporanBulanan() {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(builder: (context) => const LaporanBulananPage()),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -331,13 +596,30 @@ class _KasPageState extends State<KasPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showInputKas(),
-        backgroundColor: const Color(0xFFF4B41A),
-        foregroundColor: const Color(0xFF143D59),
-        child: const Icon(Icons.add, size: 32),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        tooltip: 'Input Kas',
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'inputBiasa',
+            onPressed: () => _showInputKas(),
+            backgroundColor: const Color(0xFFF4B41A),
+            foregroundColor: const Color(0xFF143D59),
+            child: const Icon(Icons.add, size: 32),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            tooltip: 'Input Kas',
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'inputBanyak',
+            onPressed: () => _showMultiInputKas(),
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+            child: const Icon(Icons.playlist_add, size: 28),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            tooltip: 'Input Kas Banyak',
+          ),
+        ],
       ),
       body: Column(
         children: [
