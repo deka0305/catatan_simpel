@@ -287,7 +287,7 @@ class _KasPageState extends State<KasPage> {
     final _formKey = GlobalKey<FormState>();
     List<TextEditingController> keteranganControllers = [TextEditingController()];
     List<TextEditingController> jumlahControllers = [TextEditingController()];
-    bool isMasuk = true;
+    List<bool> isMasukList = [true];
     DateTime tanggal = DateTime.now();
 
     await showDialog(
@@ -341,40 +341,6 @@ class _KasPageState extends State<KasPage> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          Expanded(
-                            child: RadioListTile<bool>(
-                              value: true,
-                              groupValue: isMasuk,
-                              title: const Text('Masuk', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                              activeColor: Color(0xFF4CAF50),
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                              visualDensity: VisualDensity.compact,
-                              tileColor: isMasuk ? Color(0xFFB0E57C).withOpacity(0.2) : null,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              onChanged: (v) => setStateDialog(() => isMasuk = true),
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Expanded(
-                            child: RadioListTile<bool>(
-                              value: false,
-                              groupValue: isMasuk,
-                              title: const Text('Keluar', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                              activeColor: Color(0xFFF44336),
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                              visualDensity: VisualDensity.compact,
-                              tileColor: !isMasuk ? Color(0xFFFFC1C1).withOpacity(0.2) : null,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              onChanged: (v) => setStateDialog(() => isMasuk = false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
                           const Icon(Icons.date_range, color: Color(0xFF143D59)),
                           const SizedBox(width: 8),
                           Expanded(
@@ -423,6 +389,7 @@ class _KasPageState extends State<KasPage> {
                         itemBuilder: (context, i) => Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
                                 flex: 5,
@@ -458,6 +425,35 @@ class _KasPageState extends State<KasPage> {
                                   maxLines: 1,
                                 ),
                               ),
+                              const SizedBox(width: 6),
+                              Column(
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Radio<bool>(
+                                        value: true,
+                                        groupValue: isMasukList[i],
+                                        activeColor: Color(0xFF4CAF50),
+                                        onChanged: (v) => setStateDialog(() => isMasukList[i] = true),
+                                      ),
+                                      const Text('Masuk', style: TextStyle(fontSize: 11)),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Radio<bool>(
+                                        value: false,
+                                        groupValue: isMasukList[i],
+                                        activeColor: Color(0xFFF44336),
+                                        onChanged: (v) => setStateDialog(() => isMasukList[i] = false),
+                                      ),
+                                      const Text('Keluar', style: TextStyle(fontSize: 11)),
+                                    ],
+                                  ),
+                                ],
+                              ),
                               IconButton(
                                 icon: const Icon(Icons.remove_circle, color: Colors.red),
                                 tooltip: 'Hapus Baris',
@@ -466,6 +462,7 @@ class _KasPageState extends State<KasPage> {
                                         setStateDialog(() {
                                           keteranganControllers.removeAt(i);
                                           jumlahControllers.removeAt(i);
+                                          isMasukList.removeAt(i);
                                         });
                                       }
                                     : null,
@@ -485,6 +482,7 @@ class _KasPageState extends State<KasPage> {
                             setStateDialog(() {
                               keteranganControllers.add(TextEditingController());
                               jumlahControllers.add(TextEditingController());
+                              isMasukList.add(true);
                             });
                           },
                         ),
@@ -508,7 +506,7 @@ class _KasPageState extends State<KasPage> {
                                 final kasBaru = Kas(
                                   keterangan: keteranganControllers[i].text,
                                   jumlah: int.tryParse(jumlahControllers[i].text) ?? 0,
-                                  isMasuk: isMasuk,
+                                  isMasuk: isMasukList[i],
                                   tanggal: tanggal,
                                 );
                                 await DatabaseHelper.instance.insertKas(kasBaru);
