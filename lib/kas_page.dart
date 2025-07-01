@@ -430,7 +430,6 @@ class _KasPageState extends State<KasPage> {
                                   controller: keteranganControllers[i],
                                   decoration: InputDecoration(
                                     labelText: 'Keterangan',
-                                    prefixIcon: const Icon(Icons.description, color: Color(0xFF143D59)),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                                     filled: true,
                                     fillColor: Colors.white,
@@ -449,7 +448,6 @@ class _KasPageState extends State<KasPage> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     labelText: 'Jumlah',
-                                    prefixIcon: const Icon(Icons.attach_money, color: Color(0xFFF4B41A)),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                                     filled: true,
                                     fillColor: Colors.white,
