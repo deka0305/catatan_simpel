@@ -23,8 +23,8 @@ android {
         applicationId "com.example.catatan_simpel" // JANGAN DIUBAH
         minSdkVersion 21
         targetSdkVersion 34
-        versionCode 2 // NAIKKAN setiap update!
-        versionName "1.1"
+        versionCode 3 // NAIKKAN setiap update!
+        versionName "1.2"
     }
 
     buildTypes {

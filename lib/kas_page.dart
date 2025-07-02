@@ -269,6 +269,7 @@ class _KasPageState extends State<KasPage> {
       ),
     );
   }
+
   void _goToLaporanHarian() async {
     await Navigator.push(
       context,
@@ -289,7 +290,9 @@ class _KasPageState extends State<KasPage> {
 
   void _showMultiInputKas() async {
     final _formKey = GlobalKey<FormState>();
-    List<TextEditingController> keteranganControllers = [TextEditingController()];
+    List<TextEditingController> keteranganControllers = [
+      TextEditingController()
+    ];
     List<TextEditingController> jumlahControllers = [TextEditingController()];
     List<bool> isMasukList = [true];
     DateTime tanggal = DateTime.now();
@@ -327,10 +330,15 @@ class _KasPageState extends State<KasPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.playlist_add, color: Color(0xFFF4B41A), size: 28),
+                          const Icon(Icons.playlist_add,
+                              color: Color(0xFFF4B41A), size: 28),
                           const SizedBox(width: 10),
-                          const Text('Input Kas Banyak',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF143D59)),
+                          const Text(
+                            'Input Kas Banyak',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Color(0xFF143D59)),
                           ),
                           const Spacer(),
                           CircleAvatar(
@@ -345,21 +353,26 @@ class _KasPageState extends State<KasPage> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          const Icon(Icons.date_range, color: Color(0xFF143D59)),
+                          const Icon(Icons.date_range,
+                              color: Color(0xFF143D59)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(tanggal),
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              DateFormat('EEEE, dd MMM yyyy', 'id_ID')
+                                  .format(tanggal),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           TextButton.icon(
-                            icon: const Icon(Icons.edit_calendar, color: Color(0xFFF4B41A)),
+                            icon: const Icon(Icons.edit_calendar,
+                                color: Color(0xFFF4B41A)),
                             label: const Text('Pilih Tanggal'),
                             style: TextButton.styleFrom(
                               foregroundColor: Color(0xFF143D59),
-                              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                              textStyle:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             onPressed: () async {
                               final picked = await showDatePicker(
@@ -401,13 +414,18 @@ class _KasPageState extends State<KasPage> {
                                   controller: keteranganControllers[i],
                                   decoration: InputDecoration(
                                     labelText: 'Keterangan',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
                                     filled: true,
                                     fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 10),
                                   ),
                                   style: const TextStyle(fontSize: 14),
-                                  validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                                  validator: (v) => v == null || v.isEmpty
+                                      ? 'Wajib diisi'
+                                      : null,
                                   maxLines: 1,
                                 ),
                               ),
@@ -419,13 +437,18 @@ class _KasPageState extends State<KasPage> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     labelText: 'Jumlah',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
                                     filled: true,
                                     fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 10),
                                   ),
                                   style: const TextStyle(fontSize: 14),
-                                  validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                                  validator: (v) => v == null || v.isEmpty
+                                      ? 'Wajib diisi'
+                                      : null,
                                   maxLines: 1,
                                 ),
                               ),
@@ -439,9 +462,11 @@ class _KasPageState extends State<KasPage> {
                                         value: true,
                                         groupValue: isMasukList[i],
                                         activeColor: Color(0xFF4CAF50),
-                                        onChanged: (v) => setStateDialog(() => isMasukList[i] = true),
+                                        onChanged: (v) => setStateDialog(
+                                            () => isMasukList[i] = true),
                                       ),
-                                      const Text('Masuk', style: TextStyle(fontSize: 11)),
+                                      const Text('Masuk',
+                                          style: TextStyle(fontSize: 11)),
                                     ],
                                   ),
                                   Row(
@@ -451,15 +476,18 @@ class _KasPageState extends State<KasPage> {
                                         value: false,
                                         groupValue: isMasukList[i],
                                         activeColor: Color(0xFFF44336),
-                                        onChanged: (v) => setStateDialog(() => isMasukList[i] = false),
+                                        onChanged: (v) => setStateDialog(
+                                            () => isMasukList[i] = false),
                                       ),
-                                      const Text('Keluar', style: TextStyle(fontSize: 11)),
+                                      const Text('Keluar',
+                                          style: TextStyle(fontSize: 11)),
                                     ],
                                   ),
                                 ],
                               ),
                               IconButton(
-                                icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                icon: const Icon(Icons.remove_circle,
+                                    color: Colors.red),
                                 tooltip: 'Hapus Baris',
                                 onPressed: keteranganControllers.length > 1
                                     ? () {
@@ -479,12 +507,15 @@ class _KasPageState extends State<KasPage> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton.icon(
-                          icon: const Icon(Icons.add_circle, color: Color(0xFF4CAF50)),
+                          icon: const Icon(Icons.add_circle,
+                              color: Color(0xFF4CAF50)),
                           label: const Text('Tambah Baris'),
-                          style: TextButton.styleFrom(foregroundColor: Color(0xFF143D59)),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Color(0xFF143D59)),
                           onPressed: () {
                             setStateDialog(() {
-                              keteranganControllers.add(TextEditingController());
+                              keteranganControllers
+                                  .add(TextEditingController());
                               jumlahControllers.add(TextEditingController());
                               isMasukList.add(true);
                             });
@@ -495,25 +526,33 @@ class _KasPageState extends State<KasPage> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          icon: const Icon(Icons.save, color: Color(0xFF143D59)),
+                          icon:
+                              const Icon(Icons.save, color: Color(0xFF143D59)),
                           label: const Text('Simpan Semua'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFFF4B41A),
                             foregroundColor: Color(0xFF143D59),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            textStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () async {
                             if (_formKey.currentState!.validate()) {
-                              for (int i = 0; i < keteranganControllers.length; i++) {
+                              for (int i = 0;
+                                  i < keteranganControllers.length;
+                                  i++) {
                                 final kasBaru = Kas(
                                   keterangan: keteranganControllers[i].text,
-                                  jumlah: int.tryParse(jumlahControllers[i].text) ?? 0,
+                                  jumlah:
+                                      int.tryParse(jumlahControllers[i].text) ??
+                                          0,
                                   isMasuk: isMasukList[i],
                                   tanggal: tanggal,
                                 );
-                                await DatabaseHelper.instance.insertKas(kasBaru);
+                                await DatabaseHelper.instance
+                                    .insertKas(kasBaru);
                               }
                               Navigator.pop(context);
                               await _loadKas();
@@ -606,7 +645,8 @@ class _KasPageState extends State<KasPage> {
             backgroundColor: const Color(0xFFF4B41A),
             foregroundColor: const Color(0xFF143D59),
             child: const Icon(Icons.add, size: 32),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             tooltip: 'Input Kas',
           ),
           const SizedBox(height: 12),
@@ -616,7 +656,8 @@ class _KasPageState extends State<KasPage> {
             backgroundColor: const Color(0xFF4CAF50),
             foregroundColor: Colors.white,
             child: const Icon(Icons.playlist_add, size: 28),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             tooltip: 'Input Kas Banyak',
           ),
         ],
@@ -1184,8 +1225,13 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
                 }
                 final total = bulanKas.fold(
                     0, (sum, k) => sum + (k.isMasuk ? k.jumlah : -k.jumlah));
-                buffer.writeln(
-                    'TOTAL SALDO BULAN INI: Rp ${NumberFormat('#,##0', 'id_ID').format(total)}');
+                buffer.writeln('TOTAL PEMBUKAN BULAN INI: Rp ${NumberFormat('#,##0', 'id_ID').format(total)}');
+                // Hitung totalKas (total saldo seluruh data, bukan hanya bulan ini)
+                final allKas = await DatabaseHelper.instance.getKasList();
+                final totalKas = allKas.fold(
+                  0, (sum, k) => sum + (k.isMasuk ? k.jumlah : -k.jumlah));
+                buffer.writeln('TOTAL BALANCE: Rp ${NumberFormat('#,##0', 'id_ID').format(totalKas)}');
+
                 await Share.share(buffer.toString());
               },
             ),
