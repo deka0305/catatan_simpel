@@ -4,9 +4,11 @@ import 'db_helper.dart';
 import 'models.dart';
 import 'add_note_page.dart';
 import 'view_note_page.dart';
+import 'sync_all_data_page.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
+
 
   @override
   State<NotesPage> createState() => _NotesPageState();
@@ -109,7 +111,12 @@ class _NotesPageState extends State<NotesPage> {
       ),
     );
   }
-
+  void _goToSyncAllDataPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SyncAllDataPage()),
+    );
+  }
   void _addNote() async {
     if (selectedFolderId == null) return;
     final result = await Navigator.push(
@@ -129,6 +136,13 @@ class _NotesPageState extends State<NotesPage> {
       appBar: AppBar(
         title: const Text('Catatan'),
         backgroundColor: const Color(0xFF143D59),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_sync),
+            tooltip: 'Sinkronisasi Data',
+            onPressed: _goToSyncAllDataPage,
+          ),
+        ],
       ),
       body: Stack(
         children: [

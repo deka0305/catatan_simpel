@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Memberikan akses internet -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="catatan_simpel"
         android:name="${applicationName}"
