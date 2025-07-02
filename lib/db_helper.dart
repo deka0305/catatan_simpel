@@ -147,11 +147,16 @@ class DatabaseHelper {
   }
 
   // CRUD Kas
-  Future<int> insertKas(Kas kas) async {
+  Future<int> insertKas(Kas kas, {bool withId = false}) async {
     final db = await instance.database;
     final map = kas.toMap();
-    map.remove('id'); // pastikan id tidak dikirim saat insert
-    return await db.insert('kas', map);
+    if (!withId) {
+      map.remove('id'); // untuk input baru, id autoincrement
+      return await db.insert('kas', map);
+    } else {
+      // Untuk restore, insert dengan id, dan jika sudah ada, abaikan
+      return await db.insert('kas', map, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
   }
 
   Future<int> updateKas(Kas kas) async {

@@ -75,7 +75,7 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       if (kasData != null) {
         for (var k in kasData) {
           if (k != null && k['id'] != null && !kasExists(k)) {
-            await DatabaseHelper.instance.insertKas(Kas.fromMap(k));
+            await DatabaseHelper.instance.insertKas(Kas.fromMap(k), withId: true);
             addedKas++;
           }
         }
