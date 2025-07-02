@@ -30,7 +30,7 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
     try {
       final baseUrl = 'https://kas-keluarga-47d2d-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-      // Ambil data folders, notes, kas
+      // Ambil data folders, notes, kas dari cloud
       final foldersRes = await http.get(Uri.parse('$baseUrl/folders.json'));
       final notesRes = await http.get(Uri.parse('$baseUrl/notes.json'));
       final kasRes = await http.get(Uri.parse('$baseUrl/kas.json'));
@@ -39,28 +39,50 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       final notesData = jsonDecode(notesRes.body) as List?;
       final kasData = jsonDecode(kasRes.body) as List?;
 
-      // Hapus data lama
-      await DatabaseHelper.instance.clearAllData();
+      // Ambil data lokal
+      final localFolders = await DatabaseHelper.instance.getFolders();
+      final localNotes = <Note>[];
+      for (final folder in localFolders) {
+        final notes = await DatabaseHelper.instance.getNotes(folder.id!);
+        localNotes.addAll(notes);
+      }
+      final localKas = await DatabaseHelper.instance.getKasList();
 
-      // Insert ke lokal
+      // Helper untuk cek apakah data sudah ada di lokal (berdasarkan id)
+      bool folderExists(dynamic f) => localFolders.any((lf) => lf.id == f['id']);
+      bool noteExists(dynamic n) => localNotes.any((ln) => ln.id == n['id']);
+      bool kasExists(dynamic k) => localKas.any((lk) => lk.id == k['id']);
+
+      int addedFolders = 0, addedNotes = 0, addedKas = 0;
+
+      // Insert data cloud yang belum ada di lokal
       if (foldersData != null) {
         for (var f in foldersData) {
-          await DatabaseHelper.instance.insertFolder(NoteFolder.fromMap(f));
+          if (f != null && f['id'] != null && !folderExists(f)) {
+            await DatabaseHelper.instance.insertFolder(NoteFolder.fromMap(f));
+            addedFolders++;
+          }
         }
       }
       if (notesData != null) {
         for (var n in notesData) {
-          await DatabaseHelper.instance.insertNote(Note.fromMap(n));
+          if (n != null && n['id'] != null && !noteExists(n)) {
+            await DatabaseHelper.instance.insertNote(Note.fromMap(n));
+            addedNotes++;
+          }
         }
       }
       if (kasData != null) {
         for (var k in kasData) {
-          await DatabaseHelper.instance.insertKas(Kas.fromMap(k));
+          if (k != null && k['id'] != null && !kasExists(k)) {
+            await DatabaseHelper.instance.insertKas(Kas.fromMap(k));
+            addedKas++;
+          }
         }
       }
 
       setState(() {
-        _status = 'Restore data dari cloud berhasil!';
+        _status = 'Restore selesai!\nFolder baru: $addedFolders, Note baru: $addedNotes, Kas baru: $addedKas';
       });
     } catch (e) {
       setState(() {
