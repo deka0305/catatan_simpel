@@ -269,18 +269,22 @@ class _KasPageState extends State<KasPage> {
       ),
     );
   }
-  void _goToLaporanHarian() {
-    Navigator.push(
+  void _goToLaporanHarian() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LaporanHarianPage()),
     );
+    await _loadKas();
+    setState(() {});
   }
 
-  void _goToLaporanBulanan() {
-    Navigator.push(
+  void _goToLaporanBulanan() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LaporanBulananPage()),
     );
+    await _loadKas();
+    setState(() {});
   }
 
   void _showMultiInputKas() async {
