@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'notes_page.dart';
 import 'tasks_page.dart';
 import 'kas_page.dart'; // Import KasPage
+import 'usaha_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -65,7 +66,8 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     NotesPage(),
     TasksPage(),
-    KasPage(), // Tambahkan KasPage di sini
+    KasPage(),
+    UsahaPage(), // Menu baru: Usaha
   ];
 
   @override
@@ -85,6 +87,7 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(icon: Icon(Icons.note), label: 'Catatan'),
           BottomNavigationBarItem(icon: Icon(Icons.checklist), label: 'Tugas'),
           BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Kas'),
+          BottomNavigationBarItem(icon: Icon(Icons.business_center), label: 'Usaha'),
         ],
       ),
     );

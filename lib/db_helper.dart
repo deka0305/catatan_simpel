@@ -3,6 +3,90 @@ import 'package:path/path.dart';
 import 'models.dart';
 
 class DatabaseHelper {
+  // CRUD Usaha Folder
+
+  // Insert Usaha Folder (tanpa id, untuk input baru)
+  Future<int> insertUsahaFolder(String nama) async {
+    final db = await instance.database;
+    return await db.insert('usaha_folders', {'nama': nama});
+  }
+
+  // Insert Usaha Folder dengan id (untuk restore, hindari duplikat)
+  Future<int> insertUsahaFolderWithId({required int id, required String nama}) async {
+    final db = await instance.database;
+    return await db.insert(
+      'usaha_folders',
+      {'id': id, 'nama': nama},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getUsahaFolders() async {
+    final db = await instance.database;
+    return await db.query('usaha_folders', orderBy: 'id DESC');
+  }
+
+  Future<int> deleteUsahaFolder(int id) async {
+    final db = await instance.database;
+    return await db.delete('usaha_folders', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // CRUD Usaha Kas
+
+  // Insert Usaha Kas (tanpa id, untuk input baru)
+  Future<int> insertUsahaKas({
+    required int folderId,
+    required String tanggal,
+    required String keterangan,
+    required int nominal,
+    required String tipe,
+  }) async {
+    final db = await instance.database;
+    return await db.insert('usaha_kas', {
+      'folder_id': folderId,
+      'tanggal': tanggal,
+      'keterangan': keterangan,
+      'nominal': nominal,
+      'tipe': tipe,
+    });
+  }
+
+  // Insert Usaha Kas dengan id (untuk restore, hindari duplikat)
+  Future<int> insertUsahaKasWithId({
+    required int id,
+    required int folderId,
+    required String tanggal,
+    required String keterangan,
+    required int nominal,
+    required String tipe,
+  }) async {
+    final db = await instance.database;
+    return await db.insert(
+      'usaha_kas',
+      {
+        'id': id,
+        'folder_id': folderId,
+        'tanggal': tanggal,
+        'keterangan': keterangan,
+        'nominal': nominal,
+        'tipe': tipe,
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getUsahaKasList(int folderId) async {
+    final db = await instance.database;
+    return await db.query('usaha_kas',
+        where: 'folder_id = ?',
+        whereArgs: [folderId],
+        orderBy: 'tanggal DESC');
+  }
+
+  Future<int> deleteUsahaKas(int id) async {
+    final db = await instance.database;
+    return await db.delete('usaha_kas', where: 'id = ?', whereArgs: [id]);
+  }
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
@@ -21,7 +105,7 @@ class DatabaseHelper {
     // await deleteDatabase(path); // Untuk development/testing saja
     return await openDatabase(
       path,
-      version: 2, // Naikkan versi jika ada perubahan struktur
+      version: 3, // Naikkan versi jika ada perubahan struktur
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -33,6 +117,25 @@ class DatabaseHelper {
               jumlah INTEGER NOT NULL,
               isMasuk INTEGER NOT NULL,
               tanggal TEXT NOT NULL
+            )
+          ''');
+        }
+        if (oldVersion < 3) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS usaha_folders (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              nama TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS usaha_kas (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              folder_id INTEGER NOT NULL,
+              tanggal TEXT NOT NULL,
+              keterangan TEXT NOT NULL,
+              nominal INTEGER NOT NULL,
+              tipe TEXT NOT NULL,
+              FOREIGN KEY (folder_id) REFERENCES usaha_folders(id) ON DELETE CASCADE
             )
           ''');
         }
@@ -72,6 +175,23 @@ class DatabaseHelper {
         jumlah INTEGER NOT NULL,
         isMasuk INTEGER NOT NULL,
         tanggal TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE usaha_folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE usaha_kas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        folder_id INTEGER NOT NULL,
+        tanggal TEXT NOT NULL,
+        keterangan TEXT NOT NULL,
+        nominal INTEGER NOT NULL,
+        tipe TEXT NOT NULL,
+        FOREIGN KEY (folder_id) REFERENCES usaha_folders(id) ON DELETE CASCADE
       )
     ''');
   }

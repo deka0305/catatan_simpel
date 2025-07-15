@@ -11,6 +11,8 @@ extension DatabaseHelperClearAllExt on DatabaseHelper {
     await db.delete('notes');
     await db.delete('folders');
     await db.delete('kas');
+    await db.delete('usaha_kas');
+    await db.delete('usaha_folders');
   }
 }
 
@@ -35,9 +37,16 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       final notesRes = await http.get(Uri.parse('$baseUrl/notes.json'));
       final kasRes = await http.get(Uri.parse('$baseUrl/kas.json'));
 
+      // Ambil data usaha_folders dan usaha_kas dari cloud
+      final usahaFoldersRes = await http.get(Uri.parse('$baseUrl/usaha_folders.json'));
+      final usahaKasRes = await http.get(Uri.parse('$baseUrl/usaha_kas.json'));
+
       final foldersData = jsonDecode(foldersRes.body) as List?;
       final notesData = jsonDecode(notesRes.body) as List?;
       final kasData = jsonDecode(kasRes.body) as List?;
+
+      final usahaFoldersData = jsonDecode(usahaFoldersRes.body) as List?;
+      final usahaKasData = jsonDecode(usahaKasRes.body) as List?;
 
       // Ambil data lokal
       final localFolders = await DatabaseHelper.instance.getFolders();
@@ -48,12 +57,24 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       }
       final localKas = await DatabaseHelper.instance.getKasList();
 
+      // Ambil data lokal usaha
+      final localUsahaFolders = await DatabaseHelper.instance.getUsahaFolders();
+      final localUsahaKas = <Map<String, dynamic>>[];
+      for (final folder in localUsahaFolders) {
+        final kas = await DatabaseHelper.instance.getUsahaKasList(folder['id']);
+        localUsahaKas.addAll(kas);
+      }
+
       // Helper untuk cek apakah data sudah ada di lokal (berdasarkan id)
       bool folderExists(dynamic f) => localFolders.any((lf) => lf.id == f['id']);
       bool noteExists(dynamic n) => localNotes.any((ln) => ln.id == n['id']);
       bool kasExists(dynamic k) => localKas.any((lk) => lk.id == k['id']);
 
+      bool usahaFolderExists(dynamic f) => localUsahaFolders.any((lf) => lf['id'] == f['id']);
+      bool usahaKasExists(dynamic k) => localUsahaKas.any((lk) => lk['id'] == k['id']);
+
       int addedFolders = 0, addedNotes = 0, addedKas = 0;
+      int addedUsahaFolders = 0, addedUsahaKas = 0;
 
       // Insert data cloud yang belum ada di lokal
       if (foldersData != null) {
@@ -81,8 +102,33 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
         }
       }
 
+      // Insert usaha_folders dan usaha_kas dari cloud (hindari duplikat, gunakan id)
+      if (usahaFoldersData != null) {
+        for (var f in usahaFoldersData) {
+          if (f != null && f['id'] != null && !usahaFolderExists(f)) {
+            await DatabaseHelper.instance.insertUsahaFolderWithId(id: f['id'], nama: f['nama']);
+            addedUsahaFolders++;
+          }
+        }
+      }
+      if (usahaKasData != null) {
+        for (var k in usahaKasData) {
+          if (k != null && k['id'] != null && !usahaKasExists(k)) {
+            await DatabaseHelper.instance.insertUsahaKasWithId(
+              id: k['id'],
+              folderId: k['folder_id'],
+              tanggal: k['tanggal'],
+              keterangan: k['keterangan'],
+              nominal: k['nominal'],
+              tipe: k['tipe'],
+            );
+            addedUsahaKas++;
+          }
+        }
+      }
+
       setState(() {
-        _status = 'Restore selesai!\nFolder baru: $addedFolders, Note baru: $addedNotes, Kas baru: $addedKas';
+        _status = 'Restore selesai!\nFolder baru: $addedFolders, Note baru: $addedNotes, Kas baru: $addedKas\nUsaha Folder baru: $addedUsahaFolders, Usaha Kas baru: $addedUsahaKas';
       });
     } catch (e) {
       setState(() {
@@ -112,6 +158,14 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       }
       final kasList = await DatabaseHelper.instance.getKasList();
 
+      // Ambil semua data usaha
+      final usahaFolders = await DatabaseHelper.instance.getUsahaFolders();
+      final List<Map<String, dynamic>> allUsahaKas = [];
+      for (final folder in usahaFolders) {
+        final kas = await DatabaseHelper.instance.getUsahaKasList(folder['id']);
+        allUsahaKas.addAll(kas);
+      }
+
       // Kirim data ke Firebase Realtime Database via HTTP
       final baseUrl = 'https://kas-keluarga-47d2d-default-rtdb.asia-southeast1.firebasedatabase.app';
       final responses = <String>[];
@@ -137,9 +191,23 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       );
       responses.add('kas: ${kasRes.statusCode}');
 
+      // Usaha Folders
+      final usahaFoldersRes = await http.put(
+        Uri.parse('$baseUrl/usaha_folders.json'),
+        body: jsonEncode(usahaFolders),
+      );
+      responses.add('usaha_folders: ${usahaFoldersRes.statusCode}');
+
+      // Usaha Kas
+      final usahaKasRes = await http.put(
+        Uri.parse('$baseUrl/usaha_kas.json'),
+        body: jsonEncode(allUsahaKas),
+      );
+      responses.add('usaha_kas: ${usahaKasRes.statusCode}');
+
       setState(() {
         _status = 'Data berhasil dikirim ke Firebase (REST API)!\n'
-            'Folder: ${folders.length}\nNote: ${allNotes.length}\nKas: ${kasList.length}\n'
+            'Folder: ${folders.length}\nNote: ${allNotes.length}\nKas: ${kasList.length}\nUsaha Folder: ${usahaFolders.length}\nUsaha Kas: ${allUsahaKas.length}\n'
             'Status: ${responses.join(', ')}';
       });
     } catch (e) {
