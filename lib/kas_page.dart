@@ -15,6 +15,7 @@ class KasPage extends StatefulWidget {
 class _KasPageState extends State<KasPage> {
   List<Kas> kasList = [];
   DateTime today = DateTime.now();
+  final NumberFormat _idrFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   void initState() {
@@ -620,7 +621,7 @@ class _KasPageState extends State<KasPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF5E4),
       appBar: AppBar(
-        title: const Text('Kas'),
+        title: const Text('Dompet'),
         backgroundColor: const Color(0xFF143D59),
         actions: [
           IconButton(
@@ -718,7 +719,7 @@ class _KasPageState extends State<KasPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Rp ${NumberFormat('#,##0', 'id_ID').format(todayKasTotal)}',
+                  _idrFormat.format(todayKasTotal),
                   style: const TextStyle(
                     color: Color(0xFFF4B41A),
                     fontWeight: FontWeight.bold,
@@ -740,7 +741,7 @@ class _KasPageState extends State<KasPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Total Balance: Rp ${NumberFormat('#,##0', 'id_ID').format(totalKas)}',
+                  'Total Balance: ${_idrFormat.format(totalKas)}',
                   style: const TextStyle(
                     color: Color(0xFFB0A295),
                     fontSize: 14,
@@ -796,7 +797,7 @@ class _KasPageState extends State<KasPage> {
                             ),
                           ),
                           subtitle: Text(
-                            'Rp ${kas.jumlah} - ${kas.isMasuk ? "Masuk" : "Keluar"}',
+                            '${_idrFormat.format(kas.jumlah)} - ${kas.isMasuk ? "Masuk" : "Keluar"}',
                             style: const TextStyle(color: Color(0xFFB0A295)),
                           ),
                           trailing: IconButton(
@@ -827,6 +828,7 @@ class LaporanHarianPage extends StatefulWidget {
 
 class _LaporanHarianPageState extends State<LaporanHarianPage> {
   DateTime selectedDate = DateTime.now();
+  final NumberFormat _idrFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   void _pickDate() async {
     final picked = await showDatePicker(
@@ -961,7 +963,7 @@ class _LaporanHarianPageState extends State<LaporanHarianPage> {
                           ),
                           const Spacer(),
                           Text(
-                            'Rp $total',
+                            _idrFormat.format(total),
                             style: const TextStyle(
                               color: Color(0xFFF4B41A),
                               fontWeight: FontWeight.bold,
@@ -1021,7 +1023,7 @@ class _LaporanHarianPageState extends State<LaporanHarianPage> {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  'Rp ${kas.jumlah} - ${kas.isMasuk ? "Masuk" : "Keluar"}',
+                                  '${_idrFormat.format(kas.jumlah)} - ${kas.isMasuk ? "Masuk" : "Keluar"}',
                                   style: TextStyle(
                                     color: kas.isMasuk
                                         ? Color(0xFF4CAF50)
@@ -1054,6 +1056,7 @@ class LaporanBulananPage extends StatefulWidget {
 
 class _LaporanBulananPageState extends State<LaporanBulananPage> {
   DateTime selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  final NumberFormat _idrFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   void _pickMonth() async {
     final picked = await showDatePicker(
@@ -1294,7 +1297,7 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
                             ),
                             const Spacer(),
                             Text(
-                              'Rp $total',
+                              _idrFormat.format(total),
                               style: const TextStyle(
                                 color: Color(0xFFF4B41A),
                                 fontWeight: FontWeight.bold,
@@ -1354,7 +1357,7 @@ class _LaporanBulananPageState extends State<LaporanBulananPage> {
                                     ),
                                   ),
                                   subtitle: Text(
-                                    'Rp ${kas.jumlah} - ${kas.isMasuk ? "Masuk" : "Keluar"}',
+                                    '${_idrFormat.format(kas.jumlah)} - ${kas.isMasuk ? "Masuk" : "Keluar"}',
                                     style: TextStyle(
                                       color: kas.isMasuk
                                           ? Color(0xFF4CAF50)

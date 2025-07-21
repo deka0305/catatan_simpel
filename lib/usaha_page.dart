@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
+import 'package:intl/intl.dart';
 
 class UsahaPage extends StatefulWidget {
   const UsahaPage({Key? key}) : super(key: key);
@@ -10,6 +11,8 @@ class UsahaPage extends StatefulWidget {
 
 class _UsahaPageState extends State<UsahaPage> {
   List<Map<String, dynamic>> usahaFolders = [];
+  final NumberFormat _idrFormat =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   void initState() {
@@ -31,38 +34,63 @@ class _UsahaPageState extends State<UsahaPage> {
         title: const Text('Kas'),
       ),
       body: usahaFolders.isEmpty
-          ? const Center(child: Text('Belum ada folder usaha.'))
+          ? const Center(
+              child: Text('Belum ada folder.',
+                  style: TextStyle(color: Color(0xFFB0A295), fontSize: 18)))
           : ListView.builder(
               itemCount: usahaFolders.length,
               itemBuilder: (context, index) {
                 final folder = usahaFolders[index];
                 return Card(
                   elevation: 3,
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 10),
                     leading: CircleAvatar(
                       backgroundColor: const Color(0xFFF4B41A),
                       child: const Icon(Icons.folder, color: Color(0xFF143D59)),
                     ),
-                    title: Text(folder['nama'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    title: Text(folder['nama'] ?? '',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     subtitle: FutureBuilder<List<Map<String, dynamic>>>(
-                      future: DatabaseHelper.instance.getUsahaKasList(folder['id']),
+                      future:
+                          DatabaseHelper.instance.getUsahaKasList(folder['id']),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const Text('Memuat...');
                         }
                         final kas = snapshot.data ?? [];
-                        int pemasukan = kas.where((k) => k['tipe'] == 'Pemasukan').fold(0, (a, b) => a + ((b['nominal'] ?? 0) as int));
-                        int pengeluaran = kas.where((k) => k['tipe'] == 'Pengeluaran').fold(0, (a, b) => a + ((b['nominal'] ?? 0) as int));
+                        int pemasukan = kas
+                            .where((k) => k['tipe'] == 'Pemasukan')
+                            .fold(
+                                0, (a, b) => a + ((b['nominal'] ?? 0) as int));
+                        int pengeluaran = kas
+                            .where((k) => k['tipe'] == 'Pengeluaran')
+                            .fold(
+                                0, (a, b) => a + ((b['nominal'] ?? 0) as int));
                         int saldo = pemasukan - pengeluaran;
                         return Row(
                           children: [
-                            Text('Saldo: ', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500)),
-                            Text('Rp $saldo', style: TextStyle(color: saldo >= 0 ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+                            Text('Saldo: ',
+                                style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500)),
+                            Text(_idrFormat.format(saldo),
+                                style: TextStyle(
+                                    color:
+                                        saldo >= 0 ? Colors.green : Colors.red,
+                                    fontWeight: FontWeight.bold)),
                             const SizedBox(width: 12),
-                            Text('Kas: ${kas.length}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                            const SizedBox(width: 12),
+                            Text('Kas: ${kas.length}',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
                           ],
                         );
                       },
@@ -71,7 +99,9 @@ class _UsahaPageState extends State<UsahaPage> {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => UsahaKasDetailPage(folderId: folder['id'], folderName: folder['nama']),
+                          builder: (context) => UsahaKasDetailPage(
+                              folderId: folder['id'],
+                              folderName: folder['nama']),
                         ),
                       );
                       _loadFolders();
@@ -79,7 +109,8 @@ class _UsahaPageState extends State<UsahaPage> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
-                        await DatabaseHelper.instance.deleteUsahaFolder(folder['id']);
+                        await DatabaseHelper.instance
+                            .deleteUsahaFolder(folder['id']);
                         _loadFolders();
                       },
                     ),
@@ -94,10 +125,10 @@ class _UsahaPageState extends State<UsahaPage> {
             builder: (context) {
               String tempName = '';
               return AlertDialog(
-                title: const Text('Tambah Folder Usaha'),
+                title: const Text('Tambah Folder'),
                 content: TextField(
                   autofocus: true,
-                  decoration: const InputDecoration(hintText: 'Nama folder usaha'),
+                  decoration: const InputDecoration(hintText: 'Nama folder'),
                   onChanged: (value) => tempName = value,
                 ),
                 actions: [
@@ -119,17 +150,18 @@ class _UsahaPageState extends State<UsahaPage> {
           }
         },
         child: const Icon(Icons.create_new_folder),
-        tooltip: 'Tambah Folder Usaha',
+        tooltip: 'Tambah Folder',
       ),
     );
   }
 }
 
-
 class UsahaKasDetailPage extends StatefulWidget {
   final int folderId;
   final String folderName;
-  const UsahaKasDetailPage({Key? key, required this.folderId, required this.folderName}) : super(key: key);
+  const UsahaKasDetailPage(
+      {Key? key, required this.folderId, required this.folderName})
+      : super(key: key);
 
   @override
   State<UsahaKasDetailPage> createState() => _UsahaKasDetailPageState();
@@ -137,6 +169,8 @@ class UsahaKasDetailPage extends StatefulWidget {
 
 class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
   List<Map<String, dynamic>> kasList = [];
+  final NumberFormat _idrFormat =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   void initState() {
@@ -153,7 +187,9 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
 
   void _showMultiInputUsahaKas() async {
     final _formKey = GlobalKey<FormState>();
-    List<TextEditingController> keteranganControllers = [TextEditingController()];
+    List<TextEditingController> keteranganControllers = [
+      TextEditingController()
+    ];
     List<TextEditingController> jumlahControllers = [TextEditingController()];
     List<bool> isMasukList = [true];
     DateTime tanggal = DateTime.now();
@@ -191,9 +227,14 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.playlist_add, color: Color(0xFFF4B41A), size: 28),
+                          const Icon(Icons.playlist_add,
+                              color: Color(0xFFF4B41A), size: 28),
                           const SizedBox(width: 10),
-                          const Text('Input Kas Banyak', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF143D59))),
+                          const Text('Input Kas',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Color(0xFF143D59))),
                           const Spacer(),
                           CircleAvatar(
                             backgroundColor: Colors.red[50],
@@ -207,19 +248,25 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          const Icon(Icons.date_range, color: Color(0xFF143D59)),
+                          const Icon(Icons.date_range,
+                              color: Color(0xFF143D59)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               '${tanggal.day.toString().padLeft(2, '0')}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.year}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           TextButton.icon(
-                            icon: const Icon(Icons.edit_calendar, color: Color(0xFFF4B41A)),
+                            icon: const Icon(Icons.edit_calendar,
+                                color: Color(0xFFF4B41A)),
                             label: const Text('Pilih Tanggal'),
-                            style: TextButton.styleFrom(foregroundColor: Color(0xFF143D59), textStyle: const TextStyle(fontWeight: FontWeight.bold)),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Color(0xFF143D59),
+                                textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
                             onPressed: () async {
                               final picked = await showDatePicker(
                                 context: context,
@@ -260,32 +307,71 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                                   controller: keteranganControllers[i],
                                   decoration: InputDecoration(
                                     labelText: 'Keterangan',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
                                     filled: true,
                                     fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 10),
                                   ),
                                   style: const TextStyle(fontSize: 14),
-                                  validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                                  validator: (v) => v == null || v.isEmpty
+                                      ? 'Wajib diisi'
+                                      : null,
                                   maxLines: 1,
                                 ),
                               ),
                               const SizedBox(width: 6),
                               Expanded(
                                 flex: 3,
-                                child: TextFormField(
-                                  controller: jumlahControllers[i],
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Jumlah',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                                  ),
-                                  style: const TextStyle(fontSize: 14),
-                                  validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
-                                  maxLines: 1,
+                                child: StatefulBuilder(
+                                  builder: (context, setStateField) {
+                                    return TextFormField(
+                                      controller: jumlahControllers[i],
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        labelText: 'Jumlah',
+                                        border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                vertical: 10, horizontal: 10),
+                                      ),
+                                      style: const TextStyle(fontSize: 14),
+                                      validator: (v) => v == null || v.isEmpty
+                                          ? 'Wajib diisi'
+                                          : null,
+                                      maxLines: 1,
+                                      inputFormatters: [],
+                                      onChanged: (value) {
+                                        String digits = value.replaceAll(
+                                            RegExp(r'[^0-9]'), '');
+                                        if (digits.isEmpty) {
+                                          jumlahControllers[i].text = '';
+                                          jumlahControllers[i].selection =
+                                              TextSelection.collapsed(
+                                                  offset: 0);
+                                          return;
+                                        }
+                                        final number = int.parse(digits);
+                                        final formatted = NumberFormat.currency(
+                                                locale: 'id_ID',
+                                                symbol: '',
+                                                decimalDigits: 0)
+                                            .format(number)
+                                            .trim();
+                                        jumlahControllers[i].text = formatted;
+                                        jumlahControllers[i].selection =
+                                            TextSelection.collapsed(
+                                                offset: formatted.length);
+                                        setStateField(() {});
+                                      },
+                                    );
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -298,9 +384,11 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                                         value: true,
                                         groupValue: isMasukList[i],
                                         activeColor: Color(0xFF4CAF50),
-                                        onChanged: (v) => setStateDialog(() => isMasukList[i] = true),
+                                        onChanged: (v) => setStateDialog(
+                                            () => isMasukList[i] = true),
                                       ),
-                                      const Text('Masuk', style: TextStyle(fontSize: 11)),
+                                      const Text('Masuk',
+                                          style: TextStyle(fontSize: 11)),
                                     ],
                                   ),
                                   Row(
@@ -310,15 +398,18 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                                         value: false,
                                         groupValue: isMasukList[i],
                                         activeColor: Color(0xFFF44336),
-                                        onChanged: (v) => setStateDialog(() => isMasukList[i] = false),
+                                        onChanged: (v) => setStateDialog(
+                                            () => isMasukList[i] = false),
                                       ),
-                                      const Text('Keluar', style: TextStyle(fontSize: 11)),
+                                      const Text('Keluar',
+                                          style: TextStyle(fontSize: 11)),
                                     ],
                                   ),
                                 ],
                               ),
                               IconButton(
-                                icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                icon: const Icon(Icons.remove_circle,
+                                    color: Colors.red),
                                 tooltip: 'Hapus Baris',
                                 onPressed: keteranganControllers.length > 1
                                     ? () {
@@ -338,12 +429,15 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton.icon(
-                          icon: const Icon(Icons.add_circle, color: Color(0xFF4CAF50)),
+                          icon: const Icon(Icons.add_circle,
+                              color: Color(0xFF4CAF50)),
                           label: const Text('Tambah Baris'),
-                          style: TextButton.styleFrom(foregroundColor: Color(0xFF143D59)),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Color(0xFF143D59)),
                           onPressed: () {
                             setStateDialog(() {
-                              keteranganControllers.add(TextEditingController());
+                              keteranganControllers
+                                  .add(TextEditingController());
                               jumlahControllers.add(TextEditingController());
                               isMasukList.add(true);
                             });
@@ -354,24 +448,35 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          icon: const Icon(Icons.save, color: Color(0xFF143D59)),
+                          icon:
+                              const Icon(Icons.save, color: Color(0xFF143D59)),
                           label: const Text('Simpan Semua'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFFF4B41A),
                             foregroundColor: Color(0xFF143D59),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            textStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () async {
                             if (_formKey.currentState!.validate()) {
-                              for (int i = 0; i < keteranganControllers.length; i++) {
+                              for (int i = 0;
+                                  i < keteranganControllers.length;
+                                  i++) {
+                                String digits = jumlahControllers[i]
+                                    .text
+                                    .replaceAll(RegExp(r'[^0-9]'), '');
                                 await DatabaseHelper.instance.insertUsahaKas(
                                   folderId: widget.folderId,
-                                  tanggal: '${tanggal.year}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.day.toString().padLeft(2, '0')}',
+                                  tanggal:
+                                      '${tanggal.year}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.day.toString().padLeft(2, '0')}',
                                   keterangan: keteranganControllers[i].text,
-                                  nominal: int.tryParse(jumlahControllers[i].text) ?? 0,
-                                  tipe: isMasukList[i] ? 'Pemasukan' : 'Pengeluaran',
+                                  nominal: int.tryParse(digits) ?? 0,
+                                  tipe: isMasukList[i]
+                                      ? 'Pemasukan'
+                                      : 'Pengeluaran',
                                 );
                               }
                               Navigator.pop(context);
@@ -398,7 +503,9 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
         title: Text(widget.folderName),
       ),
       body: kasList.isEmpty
-          ? const Center(child: Text('Belum ada data kas.'))
+          ? const Center(
+              child: Text('Belum ada data kas.',
+                  style: TextStyle(color: Color(0xFFB0A295), fontSize: 18)))
           : ListView.builder(
               itemCount: kasList.length,
               itemBuilder: (context, index) {
@@ -406,30 +513,57 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                 final isMasuk = kas['tipe'] == 'Pemasukan';
                 return Card(
                   elevation: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  color: isMasuk ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  color: isMasuk
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFFFEBEE),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: CircleAvatar(
-                      backgroundColor: isMasuk ? const Color(0xFF4CAF50) : const Color(0xFFF44336),
-                      child: Icon(isMasuk ? Icons.arrow_downward : Icons.arrow_upward, color: Colors.white),
+                      backgroundColor: isMasuk
+                          ? const Color(0xFF4CAF50)
+                          : const Color(0xFFF44336),
+                      child: Icon(
+                          isMasuk ? Icons.arrow_downward : Icons.arrow_upward,
+                          color: Colors.white),
                     ),
-                    title: Text(kas['keterangan'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${kas['tanggal']} | ${kas['tipe']}', style: const TextStyle(fontSize: 13)),
+                    title: Text(
+                      kas['keterangan'] ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${kas['tanggal']} | ${kas['tipe']}',
+                      style: const TextStyle(fontSize: 13),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Rp ${kas['nominal']}', style: TextStyle(fontWeight: FontWeight.bold, color: isMasuk ? Colors.green[800] : Colors.red[800], fontSize: 15)),
+                        Text(_idrFormat.format(kas['nominal']),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isMasuk
+                                    ? Colors.green[800]
+                                    : Colors.red[800],
+                                fontSize: 15)),
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Color(0xFFF4B41A)),
+                          icon:
+                              const Icon(Icons.edit, color: Color(0xFFF4B41A)),
                           tooltip: 'Edit',
                           onPressed: () => _showEditKasDialog(kas),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () async {
-                            await DatabaseHelper.instance.deleteUsahaKas(kas['id']);
+                            await DatabaseHelper.instance
+                                .deleteUsahaKas(kas['id']);
                             _loadKas();
                           },
                         ),
@@ -453,10 +587,13 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
 
   void _showEditKasDialog(Map<String, dynamic> kas) async {
     final _formKey = GlobalKey<FormState>();
-    final keteranganController = TextEditingController(text: kas['keterangan'] ?? '');
-    final jumlahController = TextEditingController(text: kas['nominal']?.toString() ?? '');
+    final keteranganController =
+        TextEditingController(text: kas['keterangan'] ?? '');
+    final jumlahController =
+        TextEditingController(text: kas['nominal']?.toString() ?? '');
     bool isMasuk = kas['tipe'] == 'Pemasukan';
-    DateTime tanggal = DateTime.tryParse(kas['tanggal'] ?? '') ?? DateTime.now();
+    DateTime tanggal =
+        DateTime.tryParse(kas['tanggal'] ?? '') ?? DateTime.now();
 
     await showDialog(
       context: context,
@@ -491,9 +628,14 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.edit, color: Color(0xFFF4B41A), size: 28),
+                          const Icon(Icons.edit,
+                              color: Color(0xFFF4B41A), size: 28),
                           const SizedBox(width: 10),
-                          const Text('Edit Kas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF143D59))),
+                          const Text('Edit Kas',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Color(0xFF143D59))),
                           const Spacer(),
                           CircleAvatar(
                             backgroundColor: Colors.red[50],
@@ -507,19 +649,25 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          const Icon(Icons.date_range, color: Color(0xFF143D59)),
+                          const Icon(Icons.date_range,
+                              color: Color(0xFF143D59)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               '${tanggal.day.toString().padLeft(2, '0')}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.year}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           TextButton.icon(
-                            icon: const Icon(Icons.edit_calendar, color: Color(0xFFF4B41A)),
+                            icon: const Icon(Icons.edit_calendar,
+                                color: Color(0xFFF4B41A)),
                             label: const Text('Pilih Tanggal'),
-                            style: TextButton.styleFrom(foregroundColor: Color(0xFF143D59), textStyle: const TextStyle(fontWeight: FontWeight.bold)),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Color(0xFF143D59),
+                                textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
                             onPressed: () async {
                               final picked = await showDatePicker(
                                 context: context,
@@ -554,13 +702,16 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                               controller: keteranganController,
                               decoration: InputDecoration(
                                 labelText: 'Keterangan',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10)),
                                 filled: true,
                                 fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 10),
                               ),
                               style: const TextStyle(fontSize: 14),
-                              validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                              validator: (v) =>
+                                  v == null || v.isEmpty ? 'Wajib diisi' : null,
                               maxLines: 1,
                             ),
                           ),
@@ -572,13 +723,16 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
                                 labelText: 'Jumlah',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10)),
                                 filled: true,
                                 fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 10),
                               ),
                               style: const TextStyle(fontSize: 14),
-                              validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                              validator: (v) =>
+                                  v == null || v.isEmpty ? 'Wajib diisi' : null,
                               maxLines: 1,
                             ),
                           ),
@@ -592,9 +746,11 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                                     value: true,
                                     groupValue: isMasuk,
                                     activeColor: Color(0xFF4CAF50),
-                                    onChanged: (v) => setStateDialog(() => isMasuk = true),
+                                    onChanged: (v) =>
+                                        setStateDialog(() => isMasuk = true),
                                   ),
-                                  const Text('Masuk', style: TextStyle(fontSize: 11)),
+                                  const Text('Masuk',
+                                      style: TextStyle(fontSize: 11)),
                                 ],
                               ),
                               Row(
@@ -604,9 +760,11 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                                     value: false,
                                     groupValue: isMasuk,
                                     activeColor: Color(0xFFF44336),
-                                    onChanged: (v) => setStateDialog(() => isMasuk = false),
+                                    onChanged: (v) =>
+                                        setStateDialog(() => isMasuk = false),
                                   ),
-                                  const Text('Keluar', style: TextStyle(fontSize: 11)),
+                                  const Text('Keluar',
+                                      style: TextStyle(fontSize: 11)),
                                 ],
                               ),
                             ],
@@ -617,25 +775,31 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          icon: const Icon(Icons.save, color: Color(0xFF143D59)),
+                          icon:
+                              const Icon(Icons.save, color: Color(0xFF143D59)),
                           label: const Text('Simpan Perubahan'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFFF4B41A),
                             foregroundColor: Color(0xFF143D59),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            textStyle:
+                                const TextStyle(fontWeight: FontWeight.bold),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () async {
                             if (_formKey.currentState!.validate()) {
                               await DatabaseHelper.instance.insertUsahaKas(
                                 folderId: widget.folderId,
-                                tanggal: '${tanggal.year}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.day.toString().padLeft(2, '0')}',
+                                tanggal:
+                                    '${tanggal.year}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.day.toString().padLeft(2, '0')}',
                                 keterangan: keteranganController.text,
-                                nominal: int.tryParse(jumlahController.text) ?? 0,
+                                nominal:
+                                    int.tryParse(jumlahController.text) ?? 0,
                                 tipe: isMasuk ? 'Pemasukan' : 'Pengeluaran',
                               );
-                              await DatabaseHelper.instance.deleteUsahaKas(kas['id']);
+                              await DatabaseHelper.instance
+                                  .deleteUsahaKas(kas['id']);
                               Navigator.pop(context);
                               await _loadKas();
                             }
