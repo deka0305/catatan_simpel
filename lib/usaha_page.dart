@@ -77,20 +77,32 @@ class _UsahaPageState extends State<UsahaPage> {
                         int saldo = pemasukan - pengeluaran;
                         return Row(
                           children: [
-                            Text('Saldo: ',
-                                style: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontWeight: FontWeight.w500)),
-                            Text(_idrFormat.format(saldo),
-                                style: TextStyle(
-                                    color:
-                                        saldo >= 0 ? Colors.green : Colors.red,
-                                    fontWeight: FontWeight.bold)),
+                            Text(
+                              'Saldo: ',
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              _idrFormat.format(saldo),
+                              style: TextStyle(
+                                color: saldo >= 0 ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(width: 12),
-                            const SizedBox(width: 12),
-                            Text('Kas: ${kas.length}',
+                            Expanded(
+                              child: Text(
+                                'Kas: ${kas.length}',
                                 style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                                overflow: TextOverflow
+                                    .ellipsis, // biar tidak overflow
+                              ),
+                            ),
                           ],
                         );
                       },
