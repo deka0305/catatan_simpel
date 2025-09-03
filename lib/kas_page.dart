@@ -4,6 +4,7 @@ import 'models.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Tambahkan ini
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 
 class KasPage extends StatefulWidget {
   const KasPage({super.key});
@@ -110,6 +111,7 @@ class _KasPageState extends State<KasPage> {
                     TextFormField(
                       controller: jumlahController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(
                         labelText: 'Jumlah',
                         prefixIcon: const Icon(Icons.attach_money,
@@ -119,8 +121,13 @@ class _KasPageState extends State<KasPage> {
                         filled: true,
                         fillColor: Colors.white,
                       ),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Wajib diisi' : null,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Wajib diisi';
+                        final n = int.tryParse(v);
+                        if (n == null) return 'Masukkan angka yang valid';
+                        if (n <= 0) return 'Jumlah harus > 0';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -436,6 +443,7 @@ class _KasPageState extends State<KasPage> {
                                 child: TextFormField(
                                   controller: jumlahControllers[i],
                                   keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                   decoration: InputDecoration(
                                     labelText: 'Jumlah',
                                     border: OutlineInputBorder(
@@ -447,9 +455,13 @@ class _KasPageState extends State<KasPage> {
                                         vertical: 10, horizontal: 10),
                                   ),
                                   style: const TextStyle(fontSize: 14),
-                                  validator: (v) => v == null || v.isEmpty
-                                      ? 'Wajib diisi'
-                                      : null,
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) return 'Wajib diisi';
+                                    final n = int.tryParse(v);
+                                    if (n == null) return 'Masukkan angka yang valid';
+                                    if (n <= 0) return 'Jumlah harus > 0';
+                                    return null;
+                                  },
                                   maxLines: 1,
                                 ),
                               ),

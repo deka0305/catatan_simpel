@@ -394,9 +394,34 @@ class _NotesPageState extends State<NotesPage> {
                                 ),
                                 child: const Icon(Icons.delete, color: Colors.white, size: 28),
                               ),
+                              confirmDismiss: (direction) async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Hapus Catatan'),
+                                    content: const Text('Yakin ingin menghapus catatan ini?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Batal'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return confirm == true;
+                              },
                               onDismissed: (direction) async {
                                 await DatabaseHelper.instance.deleteNote(note.id!);
                                 await _loadNotes();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Catatan dihapus')),
+                                  );
+                                }
                               },
                               child: Card(
                                 color: isPinned ? const Color(0xFFFFE082) : const Color(0xFFFFF5E4),

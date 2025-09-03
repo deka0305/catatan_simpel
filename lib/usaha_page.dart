@@ -31,7 +31,7 @@ class _UsahaPageState extends State<UsahaPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kas'),
+        title: const Text('Usaha'),
       ),
       body: usahaFolders.isEmpty
           ? const Center(
@@ -120,10 +120,34 @@ class _UsahaPageState extends State<UsahaPage> {
                     },
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
+                      tooltip: 'Hapus Folder',
                       onPressed: () async {
-                        await DatabaseHelper.instance
-                            .deleteUsahaFolder(folder['id']);
-                        _loadFolders();
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Hapus Folder'),
+                            content: Text('Yakin ingin menghapus folder "${folder['nama']}"? Semua data kas di dalamnya juga akan dihapus.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Batal'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await DatabaseHelper.instance.deleteUsahaFolder(folder['id']);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Folder dihapus')),
+                            );
+                          }
+                          _loadFolders();
+                        }
                       },
                     ),
                   ),
@@ -573,10 +597,34 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
+                          tooltip: 'Hapus',
                           onPressed: () async {
-                            await DatabaseHelper.instance
-                                .deleteUsahaKas(kas['id']);
-                            _loadKas();
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Hapus Data Kas'),
+                                content: const Text('Yakin ingin menghapus data kas ini?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text('Batal'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await DatabaseHelper.instance.deleteUsahaKas(kas['id']);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Data kas dihapus')),
+                                );
+                              }
+                              _loadKas();
+                            }
                           },
                         ),
                       ],

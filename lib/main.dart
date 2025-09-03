@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'notes_page.dart';
 import 'tasks_page.dart';
 import 'kas_page.dart'; // Import KasPage
@@ -17,6 +18,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Catatan Simpel',
+      locale: const Locale('id', 'ID'),
+      supportedLocales: const [
+        Locale('id', 'ID'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         colorScheme: ColorScheme(
           brightness: Brightness.light,
@@ -46,10 +56,20 @@ class MyApp extends StatelessWidget {
           selectedItemColor: Color(0xFFF4B41A), // Yellow
           unselectedItemColor: Color(0xFFB0A295), // Soft brown/grey
         ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFFFFFFF),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        snackBarTheme: const SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+        ),
         useMaterial3: true,
       ),
       home: const HomePage(),
-      debugShowCheckedModeBanner: kDebugMode ? false : true,
+      debugShowCheckedModeBanner: false,
     );
   }
 }
