@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'models.dart';
+import 'widgets/notebook_paper.dart';
 
 class ViewNotePage extends StatefulWidget {
   final Note note;
@@ -43,11 +44,8 @@ class _ViewNotePageState extends State<ViewNotePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5E4),
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF143D59), // Navy blue
-        foregroundColor: Colors.white,
-        elevation: 0,
         title: _isEditing
             ? const Text('Edit Catatan')
             : const Text('Detail Catatan'),
@@ -76,13 +74,15 @@ class _ViewNotePageState extends State<ViewNotePage> {
             TextField(
               controller: _titleController,
               enabled: _isEditing,
-              style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF143D59)),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
               decoration: const InputDecoration(
                 hintText: 'Judul',
                 border: InputBorder.none,
+                filled: false,
               ),
             ),
             const SizedBox(height: 8),
@@ -111,13 +111,39 @@ class _ViewNotePageState extends State<ViewNotePage> {
               ),
             ],
             Expanded(
-              child: TextField(
-                controller: _contentController,
-                enabled: _isEditing,
-                style: const TextStyle(fontSize: 18, color: Color(0xFF143D59)),
-                maxLines: null,
-                expands: true,
-                decoration: const InputDecoration(hintText: 'Tulis catatan...'),
+              child: Builder(
+                builder: (context) {
+                  final contentStyle = TextStyle(
+                    fontSize: 18,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.4,
+                  );
+                  return NotebookPaper(
+                    marginOffset: 56,
+                    referenceTextStyle: contentStyle,
+                    textScaleFactor: MediaQuery.textScaleFactorOf(context),
+                    baselineShift: -0.5,
+                    child: TextField(
+                      controller: _contentController,
+                      enabled: _isEditing,
+                      style: contentStyle,
+                      strutStyle: const StrutStyle(
+                        fontSize: 18,
+                        height: 1.4,
+                        forceStrutHeight: true,
+                      ),
+                      maxLines: null,
+                      expands: true,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Tulis catatan...',
+                        filled: false,
+                        isCollapsed: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

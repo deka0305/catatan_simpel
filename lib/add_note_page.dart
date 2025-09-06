@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'models.dart';
+import 'widgets/notebook_paper.dart';
 
 class AddNotePage extends StatefulWidget {
   final int folderId;
@@ -31,15 +32,12 @@ class _AddNotePageState extends State<AddNotePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5E4),
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF143D59), // Navy blue
-        foregroundColor: Colors.white,
-        elevation: 0,
         title: const Text('Catatan Baru'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.save, color: Color(0xFFF4B41A)),
+            icon: Icon(Icons.save, color: Theme.of(context).colorScheme.secondary),
             onPressed: _saveNote,
           ),
         ],
@@ -51,13 +49,15 @@ class _AddNotePageState extends State<AddNotePage> {
           children: [
             TextField(
               controller: _titleController,
-              style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF143D59)),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
               decoration: const InputDecoration(
                 hintText: 'Judul',
                 border: InputBorder.none,
+                filled: false,
               ),
             ),
             const SizedBox(height: 8),
@@ -85,12 +85,38 @@ class _AddNotePageState extends State<AddNotePage> {
               ],
             ),
             Expanded(
-              child: TextField(
-                controller: _contentController,
-                style: const TextStyle(fontSize: 18, color: Color(0xFF143D59)),
-                maxLines: null,
-                expands: true,
-                decoration: const InputDecoration(hintText: 'Tulis catatan...'),
+              child: Builder(
+                builder: (context) {
+                  final contentStyle = TextStyle(
+                    fontSize: 18,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.4,
+                  );
+                  return NotebookPaper(
+                    marginOffset: 56,
+                    referenceTextStyle: contentStyle,
+                    textScaleFactor: MediaQuery.textScaleFactorOf(context),
+                    baselineShift: -0.5,
+                    child: TextField(
+                      controller: _contentController,
+                      style: contentStyle,
+                      strutStyle: const StrutStyle(
+                        fontSize: 18,
+                        height: 1.4,
+                        forceStrutHeight: true,
+                      ),
+                      maxLines: null,
+                      expands: true,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Tulis catatan...',
+                        filled: false,
+                        isCollapsed: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
