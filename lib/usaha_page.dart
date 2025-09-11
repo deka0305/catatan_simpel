@@ -42,6 +42,14 @@ class _UsahaPageState extends State<UsahaPage> {
   bool _twinkle2Reverse = true;
   bool _isLoadingFolders = true;
 
+  // Cache for per-folder kas list futures to avoid flicker on rebuilds
+  final Map<int, Future<List<Map<String, dynamic>>>> _kasFutureCache = {};
+
+  Future<List<Map<String, dynamic>>> _getKasListFuture(int folderId) {
+    return _kasFutureCache.putIfAbsent(
+        folderId, () => DatabaseHelper.instance.getUsahaKasList(folderId));
+  }
+
   // Helper: determine time phase for theming
   String _getPhase([DateTime? dateTime]) {
     final now = dateTime ?? DateTime.now();
@@ -70,6 +78,8 @@ class _UsahaPageState extends State<UsahaPage> {
 
   Future<void> _loadFolders() async {
     if (mounted) setState(() => _isLoadingFolders = true);
+    // Invalidate cached kas futures when (re)loading folders
+    _kasFutureCache.clear();
     final data = await DatabaseHelper.instance.getUsahaFolders();
     if (mounted) {
       setState(() {
@@ -589,8 +599,8 @@ class _UsahaPageState extends State<UsahaPage> {
                                   ),
                                   subtitle:
                                       FutureBuilder<List<Map<String, dynamic>>>(
-                                    future: DatabaseHelper.instance
-                                        .getUsahaKasList(folder['id']),
+                                    future: _getKasListFuture(
+                                        (folder['id'] as int)),
                                     builder: (context, snapshot) {
                                       final waiting =
                                           snapshot.connectionState ==
