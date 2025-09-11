@@ -483,225 +483,239 @@ class _UsahaPageState extends State<UsahaPage> {
               ),
             ),
             child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, anim) => FadeTransition(
-                      opacity: anim,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                                begin: const Offset(0, 0.02), end: Offset.zero)
-                            .animate(anim),
-                        child: child,
+              duration: const Duration(milliseconds: 350),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                          begin: const Offset(0, 0.02), end: Offset.zero)
+                      .animate(anim),
+                  child: child,
+                ),
+              ),
+              child: _isLoadingFolders
+                  ? Center(
+                      key: const ValueKey('loading'),
+                      child: CircularProgressIndicator(
+                        valueColor:
+                            const AlwaysStoppedAnimation(Color(0xFF143D59)),
+                        backgroundColor:
+                            const Color(0xFF143D59).withOpacity(0.15),
                       ),
-                    ),
-                    child: _isLoadingFolders
-                        ? Center(
-                            key: const ValueKey('loading'),
-                            child: CircularProgressIndicator(
-                              valueColor: const AlwaysStoppedAnimation(
-                                  Color(0xFF143D59)),
-                              backgroundColor:
-                                  const Color(0xFF143D59).withOpacity(0.15),
+                    )
+                  : usahaFolders.isEmpty
+                      ? const Center(
+                          key: ValueKey('empty'),
+                          child: Text('Belum ada folder.',
+                              style: TextStyle(
+                                  color: Color(0xFFB0A295), fontSize: 18)))
+                      : RefreshIndicator(
+                          key: const ValueKey('list'),
+                          onRefresh: _loadFolders,
+                          child: ListView.separated(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount: usahaFolders.length,
+                            separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              thickness: 0.6,
+                              indent: 56,
+                              endIndent: 12,
                             ),
-                          )
-                        : usahaFolders.isEmpty
-                            ? const Center(
-                                key: ValueKey('empty'),
-                                child: Text('Belum ada folder.',
-                                    style: TextStyle(
-                                        color: Color(0xFFB0A295),
-                                        fontSize: 18)))
-                            : RefreshIndicator(
-                                key: const ValueKey('list'),
-                                onRefresh: _loadFolders,
-                                child: ListView.separated(
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  itemCount: usahaFolders.length,
-                                  separatorBuilder: (context, index) =>
-                                      const Divider(
-                                    height: 1,
-                                    thickness: 0.6,
-                                    indent: 56,
-                                    endIndent: 12,
+                            itemBuilder: (context, index) {
+                              final folder = usahaFolders[index];
+                              return TweenAnimationBuilder<double>(
+                                key: ValueKey('folder_${folder['id']}'),
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                duration: Duration(
+                                    milliseconds:
+                                        300 + math.min(index * 35, 350)),
+                                curve: Curves.easeOutCubic,
+                                builder: (context, v, child) => Opacity(
+                                  opacity: v,
+                                  child: Transform.translate(
+                                    offset: Offset(0, (1 - v) * 12),
+                                    child: child,
                                   ),
-                                  itemBuilder: (context, index) {
-                                    final folder = usahaFolders[index];
-                                    return TweenAnimationBuilder<double>(
-                                      key: ValueKey('folder_${folder['id']}'),
-                                      tween: Tween(begin: 0.0, end: 1.0),
-                                      duration: Duration(
-                                          milliseconds: 300 +
-                                              math.min(index * 35, 350)),
-                                      curve: Curves.easeOutCubic,
-                                      builder: (context, v, child) => Opacity(
-                                        opacity: v,
-                                        child: Transform.translate(
-                                          offset: Offset(0, (1 - v) * 12),
-                                          child: child,
-                                        ),
+                                ),
+                                child: ListTile(
+                                  dense: true,
+                                  visualDensity: const VisualDensity(
+                                      horizontal: -2, vertical: -2),
+                                  minLeadingWidth: 0,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 4),
+                                  leading: Hero(
+                                    tag: 'folderIcon_${folder['id']}',
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(
+                                            255, 255, 255, 255),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: Colors.amber[700]!,
+                                            width: 1),
                                       ),
-                                      child: ListTile(
-                          dense: true,
-                          visualDensity:
-                              const VisualDensity(horizontal: -2, vertical: -2),
-                          minLeadingWidth: 0,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          leading: Hero(
-                            tag: 'folderIcon_${folder['id']}',
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 255, 255, 255),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                    color: Colors.amber[700]!, width: 1),
-                              ),
-                              child: Icon(Icons.folder,
-                                  color:
-                                      const Color.fromARGB(255, 228, 166, 84),
-                                  size: 22),
-                            ),
-                          ),
-                          title: Hero(
-                            tag: 'folderTitle_${folder['id']}',
-                            flightShuttleBuilder:
-                                (context, animation, direction, from, to) =>
-                                    FadeTransition(
-                                        opacity: animation, child: to.widget),
-                            child: Material(
-                              type: MaterialType.transparency,
-                              child: Text(
-                                folder['nama'] ?? '',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13.5,
-                                  color: Color(0xFF143D59),
-                                  letterSpacing: 0.1,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          subtitle: FutureBuilder<List<Map<String, dynamic>>>(
-                            future: DatabaseHelper.instance
-                                .getUsahaKasList(folder['id']),
-                            builder: (context, snapshot) {
-                              final waiting = snapshot.connectionState ==
-                                  ConnectionState.waiting;
-                              if (waiting) {
-                                return AnimatedSwitcher(
-                                  duration:
-                                      const Duration(milliseconds: 200),
-                                  child: Text(
-                                    'Memuat...',
-                                    key: ValueKey(
-                                        'subtitle_${folder['id']}_loading'),
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
+                                      child: Icon(Icons.folder,
+                                          color: const Color.fromARGB(
+                                              255, 228, 166, 84),
+                                          size: 22),
                                     ),
                                   ),
-                                );
-                              }
-                              final kas = snapshot.data ?? [];
-                              int pemasukan = kas
-                                  .where((k) => k['tipe'] == 'Pemasukan')
-                                  .fold(
-                                      0,
-                                      (a, b) =>
-                                          a + ((b['nominal'] ?? 0) as int));
-                              int pengeluaran = kas
-                                  .where((k) => k['tipe'] == 'Pengeluaran')
-                                  .fold(
-                                      0,
-                                      (a, b) =>
-                                          a + ((b['nominal'] ?? 0) as int));
-                              int saldo = pemasukan - pengeluaran;
-                              return AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 250),
-                                child: Text(
-                                  'Kas ${kas.length} | Masuk ${_idrFormat.format(pemasukan)} | Keluar ${_idrFormat.format(pengeluaran)} | Saldo ${_idrFormat.format(saldo)}',
-                                  key: ValueKey(
-                                      'subtitle_${folder['id']}_ready_${kas.length}_${pemasukan}_${pengeluaran}_${saldo}'),
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 12,
+                                  title: Hero(
+                                    tag: 'folderTitle_${folder['id']}',
+                                    flightShuttleBuilder: (context, animation,
+                                            direction, from, to) =>
+                                        FadeTransition(
+                                            opacity: animation,
+                                            child: to.widget),
+                                    child: Material(
+                                      type: MaterialType.transparency,
+                                      child: Text(
+                                        folder['nama'] ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13.5,
+                                          color: Color(0xFF143D59),
+                                          letterSpacing: 0.1,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            },
-                          ),
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => UsahaKasDetailPage(
-                                    folderId: folder['id'],
-                                    folderName: folder['nama']),
-                              ),
-                            );
-                            _loadFolders();
-                          },
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            iconSize: 18,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                                minWidth: 32, minHeight: 32),
-                            splashRadius: 18,
-                            tooltip: 'Hapus Folder',
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16)),
-                                  backgroundColor: const Color(0xFFFFF5E4),
-                                  title: const Text('Hapus Folder',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold)),
-                                  content: Text(
-                                      'Yakin ingin menghapus folder "${folder['nama']}"? Semua data kas di dalamnya juga akan dihapus.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: const Text('Batal'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      child: const Text('Hapus',
-                                          style: TextStyle(color: Colors.red)),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (confirm == true) {
-                                await DatabaseHelper.instance
-                                    .deleteUsahaFolder(folder['id']);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('Folder dihapus')),
-                                  );
-                                }
-                                _loadFolders();
-                              }
-                            },
-                          ),
+                                  subtitle:
+                                      FutureBuilder<List<Map<String, dynamic>>>(
+                                    future: DatabaseHelper.instance
+                                        .getUsahaKasList(folder['id']),
+                                    builder: (context, snapshot) {
+                                      final waiting =
+                                          snapshot.connectionState ==
+                                              ConnectionState.waiting;
+                                      if (waiting) {
+                                        return AnimatedSwitcher(
+                                          duration:
+                                              const Duration(milliseconds: 200),
+                                          child: Text(
+                                            'Memuat...',
+                                            key: ValueKey(
+                                                'subtitle_${folder['id']}_loading'),
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      final kas = snapshot.data ?? [];
+                                      int pemasukan = kas
+                                          .where(
+                                              (k) => k['tipe'] == 'Pemasukan')
+                                          .fold(
+                                              0,
+                                              (a, b) =>
+                                                  a +
+                                                  ((b['nominal'] ?? 0) as int));
+                                      int pengeluaran = kas
+                                          .where(
+                                              (k) => k['tipe'] == 'Pengeluaran')
+                                          .fold(
+                                              0,
+                                              (a, b) =>
+                                                  a +
+                                                  ((b['nominal'] ?? 0) as int));
+                                      int saldo = pemasukan - pengeluaran;
+                                      return AnimatedSwitcher(
+                                        duration:
+                                            const Duration(milliseconds: 250),
+                                        child: Text(
+                                          'Kas ${kas.length} | Masuk ${_idrFormat.format(pemasukan)} | Keluar ${_idrFormat.format(pengeluaran)} | Saldo ${_idrFormat.format(saldo)}',
+                                          key: ValueKey(
+                                              'subtitle_${folder['id']}_ready_${kas.length}_${pemasukan}_${pengeluaran}_${saldo}'),
+                                          style: TextStyle(
+                                            color: Colors.grey.shade700,
+                                            fontSize: 12,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  onTap: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            UsahaKasDetailPage(
+                                                folderId: folder['id'],
+                                                folderName: folder['nama']),
                                       ),
                                     );
+                                    _loadFolders();
                                   },
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    iconSize: 18,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                        minWidth: 32, minHeight: 32),
+                                    splashRadius: 18,
+                                    tooltip: 'Hapus Folder',
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16)),
+                                          backgroundColor:
+                                              const Color(0xFFFFF5E4),
+                                          title: const Text('Hapus Folder',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          content: Text(
+                                              'Yakin ingin menghapus folder "${folder['nama']}"? Semua data kas di dalamnya juga akan dihapus.'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Batal'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text('Hapus',
+                                                  style: TextStyle(
+                                                      color: Colors.red)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        await DatabaseHelper.instance
+                                            .deleteUsahaFolder(folder['id']);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content:
+                                                    Text('Folder dihapus')),
+                                          );
+                                        }
+                                        _loadFolders();
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                  ),
+                              );
+                            },
+                          ),
+                        ),
+            ),
           );
         },
       ),
@@ -1609,9 +1623,9 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
           transitionBuilder: (child, anim) => FadeTransition(
             opacity: anim,
             child: SlideTransition(
-              position: Tween<Offset>(
-                      begin: const Offset(0, 0.02), end: Offset.zero)
-                  .animate(anim),
+              position:
+                  Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero)
+                      .animate(anim),
               child: child,
             ),
           ),
@@ -1619,10 +1633,8 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
               ? Center(
                   key: const ValueKey('kas_loading'),
                   child: CircularProgressIndicator(
-                    valueColor:
-                        const AlwaysStoppedAnimation(Color(0xFF143D59)),
-                    backgroundColor:
-                        const Color(0xFF143D59).withOpacity(0.15),
+                    valueColor: const AlwaysStoppedAnimation(Color(0xFF143D59)),
+                    backgroundColor: const Color(0xFF143D59).withOpacity(0.15),
                   ),
                 )
               : kasList.isEmpty
@@ -1641,8 +1653,7 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                         return TweenAnimationBuilder<double>(
                           key: ValueKey('kas_${kas['id']}'),
                           duration: Duration(
-                              milliseconds:
-                                  300 + math.min(index * 35, 350)),
+                              milliseconds: 300 + math.min(index * 35, 350)),
                           tween: Tween(begin: 0.0, end: 1.0),
                           curve: Curves.easeOutCubic,
                           builder: (context, v, child) => Opacity(
@@ -1653,130 +1664,136 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                             ),
                           ),
                           child: Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      color: isMasuk
-                          ? const Color(0xFFE8F5E9)
-                          : const Color(0xFFFFEBEE),
-                      child: ListTile(
-                        dense: true,
-                        visualDensity:
-                            const VisualDensity(horizontal: -1, vertical: -2),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        leading: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: isMasuk
-                              ? const Color(0xFF4CAF50)
-                              : const Color(0xFFF44336),
-                          child: Icon(
-                            isMasuk ? Icons.arrow_downward : Icons.arrow_upward,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                        title: Text(
-                          kas['keterangan'] ?? '',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${kas['tanggal']} | ${kas['tipe']}',
-                              style: const TextStyle(fontSize: 12.5),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _idrFormat.format(kas['nominal']),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isMasuk
-                                    ? Colors.green[800]
-                                    : Colors.red[800],
-                                fontSize: 13,
+                            elevation: 2,
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            color: isMasuk
+                                ? const Color(0xFFE8F5E9)
+                                : const Color(0xFFFFEBEE),
+                            child: ListTile(
+                              dense: true,
+                              visualDensity: const VisualDensity(
+                                  horizontal: -1, vertical: -2),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              leading: CircleAvatar(
+                                radius: 14,
+                                backgroundColor: isMasuk
+                                    ? const Color(0xFF4CAF50)
+                                    : const Color(0xFFF44336),
+                                child: Icon(
+                                  isMasuk
+                                      ? Icons.arrow_downward
+                                      : Icons.arrow_upward,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                              title: Text(
+                                kas['keterangan'] ?? '',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${kas['tanggal']} | ${kas['tipe']}',
+                                    style: const TextStyle(fontSize: 12.5),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _idrFormat.format(kas['nominal']),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isMasuk
+                                          ? Colors.green[800]
+                                          : Colors.red[800],
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit,
+                                        color: Color(0xFFF4B41A)),
+                                    tooltip: 'Edit',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                        minWidth: 32, minHeight: 32),
+                                    splashRadius: 18,
+                                    onPressed: () => _showEditKasDialog(kas),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    tooltip: 'Hapus',
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(
+                                        minWidth: 32, minHeight: 32),
+                                    splashRadius: 18,
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16)),
+                                          backgroundColor:
+                                              const Color(0xFFFFF5E4),
+                                          title: const Text('Hapus Data Kas',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold)),
+                                          content: const Text(
+                                              'Yakin ingin menghapus data kas ini?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Batal'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text('Hapus',
+                                                  style: TextStyle(
+                                                      color: Colors.red)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        await DatabaseHelper.instance
+                                            .deleteUsahaKas(kas['id']);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content:
+                                                    Text('Data kas dihapus')),
+                                          );
+                                        }
+                                        _loadKas();
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit,
-                                  color: Color(0xFFF4B41A)),
-                              tooltip: 'Edit',
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 32, minHeight: 32),
-                              splashRadius: 18,
-                              onPressed: () => _showEditKasDialog(kas),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Hapus',
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 32, minHeight: 32),
-                              splashRadius: 18,
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16)),
-                                    backgroundColor: const Color(0xFFFFF5E4),
-                                    title: const Text('Hapus Data Kas',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    content: const Text(
-                                        'Yakin ingin menghapus data kas ini?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        child: const Text('Batal'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        child: const Text('Hapus',
-                                            style:
-                                                TextStyle(color: Colors.red)),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirm == true) {
-                                  await DatabaseHelper.instance
-                                      .deleteUsahaKas(kas['id']);
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('Data kas dihapus')),
-                                    );
-                                  }
-                                  _loadKas();
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
+                          ),
+                        );
                       },
                     ),
         ),
