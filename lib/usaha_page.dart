@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:math' as math;
 import 'db_helper.dart';
 import 'package:intl/intl.dart';
 
@@ -39,6 +40,7 @@ class _UsahaPageState extends State<UsahaPage> {
   // Animation toggles for subtle twinkle effects at night
   bool _twinkle1Reverse = false;
   bool _twinkle2Reverse = true;
+  bool _isLoadingFolders = true;
 
   // Helper: determine time phase for theming
   String _getPhase([DateTime? dateTime]) {
@@ -67,10 +69,14 @@ class _UsahaPageState extends State<UsahaPage> {
   }
 
   Future<void> _loadFolders() async {
+    if (mounted) setState(() => _isLoadingFolders = true);
     final data = await DatabaseHelper.instance.getUsahaFolders();
-    setState(() {
-      usahaFolders = data;
-    });
+    if (mounted) {
+      setState(() {
+        usahaFolders = data;
+        _isLoadingFolders = false;
+      });
+    }
   }
 
   // Small circular badge with time-based gradient and animated icon
@@ -476,25 +482,67 @@ class _UsahaPageState extends State<UsahaPage> {
                 end: Alignment.bottomCenter,
               ),
             ),
-            child: usahaFolders.isEmpty
-                ? const Center(
-                    child: Text('Belum ada folder.',
-                        style:
-                            TextStyle(color: Color(0xFFB0A295), fontSize: 18)))
-                : RefreshIndicator(
-                    onRefresh: _loadFolders,
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: usahaFolders.length,
-                      separatorBuilder: (context, index) => const Divider(
-                        height: 1,
-                        thickness: 0.6,
-                        indent: 56,
-                        endIndent: 12,
+            child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, anim) => FadeTransition(
+                      opacity: anim,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                                begin: const Offset(0, 0.02), end: Offset.zero)
+                            .animate(anim),
+                        child: child,
                       ),
-                      itemBuilder: (context, index) {
-                        final folder = usahaFolders[index];
-                        return ListTile(
+                    ),
+                    child: _isLoadingFolders
+                        ? Center(
+                            key: const ValueKey('loading'),
+                            child: CircularProgressIndicator(
+                              valueColor: const AlwaysStoppedAnimation(
+                                  Color(0xFF143D59)),
+                              backgroundColor:
+                                  const Color(0xFF143D59).withOpacity(0.15),
+                            ),
+                          )
+                        : usahaFolders.isEmpty
+                            ? const Center(
+                                key: ValueKey('empty'),
+                                child: Text('Belum ada folder.',
+                                    style: TextStyle(
+                                        color: Color(0xFFB0A295),
+                                        fontSize: 18)))
+                            : RefreshIndicator(
+                                key: const ValueKey('list'),
+                                onRefresh: _loadFolders,
+                                child: ListView.separated(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  itemCount: usahaFolders.length,
+                                  separatorBuilder: (context, index) =>
+                                      const Divider(
+                                    height: 1,
+                                    thickness: 0.6,
+                                    indent: 56,
+                                    endIndent: 12,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final folder = usahaFolders[index];
+                                    return TweenAnimationBuilder<double>(
+                                      key: ValueKey('folder_${folder['id']}'),
+                                      tween: Tween(begin: 0.0, end: 1.0),
+                                      duration: Duration(
+                                          milliseconds: 300 +
+                                              math.min(index * 35, 350)),
+                                      curve: Curves.easeOutCubic,
+                                      builder: (context, v, child) => Opacity(
+                                        opacity: v,
+                                        child: Transform.translate(
+                                          offset: Offset(0, (1 - v) * 12),
+                                          child: child,
+                                        ),
+                                      ),
+                                      child: ListTile(
                           dense: true,
                           visualDensity:
                               const VisualDensity(horizontal: -2, vertical: -2),
@@ -543,9 +591,22 @@ class _UsahaPageState extends State<UsahaPage> {
                             future: DatabaseHelper.instance
                                 .getUsahaKasList(folder['id']),
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Text('Memuat...');
+                              final waiting = snapshot.connectionState ==
+                                  ConnectionState.waiting;
+                              if (waiting) {
+                                return AnimatedSwitcher(
+                                  duration:
+                                      const Duration(milliseconds: 200),
+                                  child: Text(
+                                    'Memuat...',
+                                    key: ValueKey(
+                                        'subtitle_${folder['id']}_loading'),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                );
                               }
                               final kas = snapshot.data ?? [];
                               int pemasukan = kas
@@ -561,13 +622,18 @@ class _UsahaPageState extends State<UsahaPage> {
                                       (a, b) =>
                                           a + ((b['nominal'] ?? 0) as int));
                               int saldo = pemasukan - pengeluaran;
-                              return Text(
-                                'Kas ${kas.length} | Masuk ${_idrFormat.format(pemasukan)} | Keluar ${_idrFormat.format(pengeluaran)} | Saldo ${_idrFormat.format(saldo)}',
-                                style: TextStyle(
-                                  color: Colors.grey.shade700,
-                                  fontSize: 12,
+                              return AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 250),
+                                child: Text(
+                                  'Kas ${kas.length} | Masuk ${_idrFormat.format(pemasukan)} | Keluar ${_idrFormat.format(pengeluaran)} | Saldo ${_idrFormat.format(saldo)}',
+                                  key: ValueKey(
+                                      'subtitle_${folder['id']}_ready_${kas.length}_${pemasukan}_${pengeluaran}_${saldo}'),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 12,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               );
                             },
                           ),
@@ -630,9 +696,11 @@ class _UsahaPageState extends State<UsahaPage> {
                               }
                             },
                           ),
-                        );
-                      },
-                    ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                   ),
           );
         },
@@ -921,6 +989,7 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
   List<Map<String, dynamic>> kasList = [];
   final NumberFormat _idrFormat =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  bool _isLoadingKas = true;
 
   @override
   void initState() {
@@ -929,10 +998,14 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
   }
 
   Future<void> _loadKas() async {
+    if (mounted) setState(() => _isLoadingKas = true);
     final data = await DatabaseHelper.instance.getUsahaKasList(widget.folderId);
-    setState(() {
-      kasList = data;
-    });
+    if (mounted) {
+      setState(() {
+        kasList = data;
+        _isLoadingKas = false;
+      });
+    }
   }
 
   void _showMultiInputUsahaKas() async {
@@ -1441,14 +1514,18 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                             fontWeight: FontWeight.w600,
                           )),
                       const SizedBox(height: 2),
-                      Text(
-                        _idrFormat.format(pemasukan),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: Text(
+                          _idrFormat.format(pemasukan),
+                          key: ValueKey('in_${pemasukan}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
@@ -1466,14 +1543,18 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                             fontWeight: FontWeight.w600,
                           )),
                       const SizedBox(height: 2),
-                      Text(
-                        _idrFormat.format(pengeluaran),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: Text(
+                          _idrFormat.format(pengeluaran),
+                          key: ValueKey('out_${pengeluaran}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
@@ -1491,14 +1572,18 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                             fontWeight: FontWeight.w600,
                           )),
                       const SizedBox(height: 2),
-                      Text(
-                        _idrFormat.format(saldo),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: Text(
+                          _idrFormat.format(saldo),
+                          key: ValueKey('bal_${saldo}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],
@@ -1517,25 +1602,57 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-        child: kasList.isEmpty
-            ? const Center(
-                child: Text('Belum ada data kas.',
-                    style: TextStyle(color: Color(0xFFB0A295), fontSize: 18)))
-            : ListView.builder(
-                physics: const BouncingScrollPhysics(),
-                itemCount: kasList.length,
-                itemBuilder: (context, index) {
-                  final kas = kasList[index];
-                  final isMasuk = kas['tipe'] == 'Pemasukan';
-                  return TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 250),
-                    tween: Tween(begin: 0.95, end: 1.0),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, scale, child) => Transform.scale(
-                      scale: scale,
-                      child: child,
-                    ),
-                    child: Card(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                      begin: const Offset(0, 0.02), end: Offset.zero)
+                  .animate(anim),
+              child: child,
+            ),
+          ),
+          child: _isLoadingKas
+              ? Center(
+                  key: const ValueKey('kas_loading'),
+                  child: CircularProgressIndicator(
+                    valueColor:
+                        const AlwaysStoppedAnimation(Color(0xFF143D59)),
+                    backgroundColor:
+                        const Color(0xFF143D59).withOpacity(0.15),
+                  ),
+                )
+              : kasList.isEmpty
+                  ? const Center(
+                      key: ValueKey('kas_empty'),
+                      child: Text('Belum ada data kas.',
+                          style: TextStyle(
+                              color: Color(0xFFB0A295), fontSize: 18)))
+                  : ListView.builder(
+                      key: const ValueKey('kas_list'),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: kasList.length,
+                      itemBuilder: (context, index) {
+                        final kas = kasList[index];
+                        final isMasuk = kas['tipe'] == 'Pemasukan';
+                        return TweenAnimationBuilder<double>(
+                          key: ValueKey('kas_${kas['id']}'),
+                          duration: Duration(
+                              milliseconds:
+                                  300 + math.min(index * 35, 350)),
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, v, child) => Opacity(
+                            opacity: v,
+                            child: Transform.translate(
+                              offset: Offset(0, (1 - v) * 12),
+                              child: child,
+                            ),
+                          ),
+                          child: Card(
                       elevation: 2,
                       margin: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
@@ -1660,8 +1777,9 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                       ),
                     ),
                   );
-                },
-              ),
+                      },
+                    ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.small(
         heroTag: 'inputBanyak',
