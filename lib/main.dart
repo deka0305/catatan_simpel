@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
           error: Colors.red,
           onError: Colors.white,
         ),
-        scaffoldBackgroundColor: const Color(0xFFFFF5E4), // Cream
+        // scaffoldBackgroundColor: Colors.transparent,
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF143D59), // Navy blue
           foregroundColor: Colors.white,
@@ -85,7 +85,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     NotesPage(),
     TasksPage(),
-    KasPage(),
+    // KasPage(),
     UsahaPage(), // Menu baru: Usaha
   ];
 
@@ -105,7 +105,7 @@ class _HomePageState extends State<HomePage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.note), label: 'Catatan'),
           BottomNavigationBarItem(icon: Icon(Icons.checklist), label: 'Tugas'),
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Kas'),
+          // BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Kas'),
           BottomNavigationBarItem(icon: Icon(Icons.business_center), label: 'Usaha'),
         ],
       ),

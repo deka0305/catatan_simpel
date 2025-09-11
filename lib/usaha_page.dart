@@ -3,6 +3,27 @@ import 'dart:ui';
 import 'db_helper.dart';
 import 'package:intl/intl.dart';
 
+// Custom wave clipper for app bar
+class _WaveAppBarClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 40,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
 class UsahaPage extends StatefulWidget {
   const UsahaPage({Key? key}) : super(key: key);
 
@@ -14,6 +35,30 @@ class _UsahaPageState extends State<UsahaPage> {
   List<Map<String, dynamic>> usahaFolders = [];
   final NumberFormat _idrFormat =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+  // Animation toggles for subtle twinkle effects at night
+  bool _twinkle1Reverse = false;
+  bool _twinkle2Reverse = true;
+
+  // Helper: determine time phase for theming
+  String _getPhase([DateTime? dateTime]) {
+    final now = dateTime ?? DateTime.now();
+    final h = now.hour;
+    if (h >= 19 || h < 5) return 'night';
+    if (h >= 5 && h < 8) return 'dawn';
+    if (h >= 17 && h < 19) return 'dusk';
+    return 'day';
+  }
+
+  // Helper: greeting text by time
+  String _greetingText([DateTime? dateTime]) {
+    final now = dateTime ?? DateTime.now();
+    final h = now.hour;
+    if (h >= 4 && h < 11) return 'Selamat Pagi';
+    if (h >= 11 && h < 15) return 'Selamat Siang';
+    if (h >= 15 && h < 19) return 'Selamat Sore';
+    return 'Selamat Malam';
+  }
 
   @override
   void initState() {
@@ -28,237 +73,569 @@ class _UsahaPageState extends State<UsahaPage> {
     });
   }
 
+  // Small circular badge with time-based gradient and animated icon
+  Widget _buildSkyBadge() {
+    final now = DateTime.now();
+    final h = now.hour;
+    final bool isNight = h >= 19 || h < 5;
+    final bool isDawn = h >= 5 && h < 8;
+    final bool isDusk = h >= 17 && h < 19;
+    final bool isDay = !isNight && !isDawn && !isDusk;
+
+    // Gradients by time
+    final List<Color> grad = isNight
+        ? const [Color(0xFF1E3C72), Color(0xFF2A5298)] // deep blue
+        : isDawn
+            ? const [Color(0xFFFFD194), Color(0xFF70E1F5)] // sunrise
+            : isDusk
+                ? const [Color(0xFFFFA5A5), Color(0xFF7F7FD5)] // sunset
+                : const [Color(0xFFFFF19A), Color(0xFF7FD7FF)]; // bright day
+
+    // Icon layer animation
+    final Widget iconLayer = isNight
+        // Moon bobbing slightly
+        ? TweenAnimationBuilder<double>(
+            tween: Tween(begin: -2.0, end: 2.0),
+            duration: const Duration(seconds: 3),
+            curve: Curves.easeInOut,
+            builder: (context, v, child) => Transform.translate(
+              offset: Offset(0, v),
+              child: child,
+            ),
+            onEnd: () => setState(() {}),
+            child: const Icon(Icons.nightlight_round,
+                color: Colors.white, size: 18),
+          )
+        : isDay
+            // Sun rotating slowly
+            ? TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 6.283),
+                duration: const Duration(seconds: 4),
+                curve: Curves.linear,
+                builder: (context, angle, child) => Transform.rotate(
+                  angle: angle,
+                  child: child,
+                ),
+                onEnd: () => setState(() {}),
+                child: const Icon(Icons.wb_sunny_rounded,
+                    color: Colors.white, size: 18),
+              )
+            // Dawn/Dusk with drifting cloud
+            : TweenAnimationBuilder<double>(
+                tween: Tween(begin: -6.0, end: 6.0),
+                duration: const Duration(seconds: 2),
+                curve: Curves.easeInOut,
+                builder: (context, value, child) => Transform.translate(
+                  offset: Offset(value, 0),
+                  child: child,
+                ),
+                onEnd: () => setState(() {}),
+                child: const Icon(Icons.cloud, color: Colors.white, size: 18),
+              );
+
+    // Twinkling stars for night
+    final List<Widget> starWidgets = <Widget>[];
+    if (isNight) {
+      starWidgets.addAll([
+        Positioned(
+          left: 7,
+          top: 8,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(
+              begin: _twinkle1Reverse ? 1.0 : 0.3,
+              end: _twinkle1Reverse ? 0.3 : 1.0,
+            ),
+            duration: const Duration(milliseconds: 1500),
+            onEnd: () => setState(() => _twinkle1Reverse = !_twinkle1Reverse),
+            builder: (context, opacity, child) => Opacity(
+              opacity: opacity,
+              child: child,
+            ),
+            child: const Icon(Icons.star_rate_rounded,
+                color: Colors.white, size: 6),
+          ),
+        ),
+        Positioned(
+          right: 7,
+          bottom: 8,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(
+              begin: _twinkle2Reverse ? 1.0 : 0.3,
+              end: _twinkle2Reverse ? 0.3 : 1.0,
+            ),
+            duration: const Duration(milliseconds: 1200),
+            onEnd: () => setState(() => _twinkle2Reverse = !_twinkle2Reverse),
+            builder: (context, opacity, child) => Opacity(
+              opacity: opacity,
+              child: child,
+            ),
+            child: const Icon(Icons.star_rate_rounded,
+                color: Colors.white, size: 5),
+          ),
+        ),
+      ]);
+    }
+
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          AnimatedContainer(
+            width: 36,
+            height: 36,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(colors: grad),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+          ),
+          ...starWidgets,
+          iconLayer,
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Usaha'),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF143D59), Color(0xFF1E4E73)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFFF5E4), Color(0xFFFFF1D4)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: usahaFolders.isEmpty
-            ? const Center(
-                child: Text('Belum ada folder.',
-                    style: TextStyle(color: Color(0xFFB0A295), fontSize: 18)))
-            : RefreshIndicator(
-                onRefresh: _loadFolders,
-                child: ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: usahaFolders.length,
-                  itemBuilder: (context, index) {
-                    final folder = usahaFolders[index];
-                    return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 10),
-                        leading: Hero(
-                          tag: 'folderIcon_${folder['id']}',
-                          child: CircleAvatar(
-                            backgroundColor: const Color(0xFFF4B41A),
-                            child: const Icon(Icons.folder,
-                                color: Color(0xFF143D59)),
-                          ),
-                        ),
-                        title: Hero(
-                          tag: 'folderTitle_${folder['id']}',
-                          flightShuttleBuilder:
-                              (context, animation, direction, from, to) =>
-                                  FadeTransition(
-                                      opacity: animation, child: to.widget),
-                          child: Material(
-                            type: MaterialType.transparency,
-                            child: Text(
-                              folder['nama'] ?? '',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        subtitle: FutureBuilder<List<Map<String, dynamic>>>(
-                          future: DatabaseHelper.instance
-                              .getUsahaKasList(folder['id']),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Text('Memuat...');
-                            }
-                            final kas = snapshot.data ?? [];
-                            int pemasukan = kas
-                                .where((k) => k['tipe'] == 'Pemasukan')
-                                .fold(0,
-                                    (a, b) => a + ((b['nominal'] ?? 0) as int));
-                            int pengeluaran = kas
-                                .where((k) => k['tipe'] == 'Pengeluaran')
-                                .fold(0,
-                                    (a, b) => a + ((b['nominal'] ?? 0) as int));
-                            int saldo = pemasukan - pengeluaran;
-                            final total = (pemasukan + pengeluaran).toDouble();
-                            final ratio = total == 0
-                                ? 0.5
-                                : (pemasukan / total).clamp(0.0, 1.0);
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  children: [
-                                    Chip(
-                                      avatar: const Icon(Icons.arrow_downward,
-                                          size: 18, color: Colors.white),
-                                      label: Text(_idrFormat.format(pemasukan)),
-                                      labelStyle: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white),
-                                      backgroundColor: const Color(0xFF4CAF50),
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(170),
+        child: ClipPath(
+          clipper: _WaveAppBarClipper(),
+          child: Builder(
+            builder: (context) {
+              final now = DateTime.now();
+              final h = now.hour;
+              final bool isNight = h >= 19 || h < 5;
+              final bool isDawn = h >= 5 && h < 8;
+              final bool isDusk = h >= 17 && h < 19;
+              final bool isDay = !isNight && !isDawn && !isDusk;
+
+              final List<Color> headerGrad = isNight
+                  ? const [Color(0xFF0F2027), Color(0xFF203A43)] // deep night
+                  : isDawn
+                      ? const [Color(0xFFFFD194), Color(0xFF70E1F5)] // sunrise
+                      : isDusk
+                          ? const [
+                              Color(0xFFFFA5A5),
+                              Color(0xFF7F7FD5)
+                            ] // sunset
+                          : const [
+                              Color(0xFFFFF19A),
+                              Color(0xFF7FD7FF),
+                            ]; // bright day
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: headerGrad,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Decorative sky overlay (non-interactive)
+                    IgnorePointer(
+                      child: SizedBox.expand(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Stack(
+                            children: [
+                              if (isDay)
+                                Align(
+                                  alignment: const Alignment(0.95, -0.9),
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0.0, end: 6.283),
+                                    duration: const Duration(seconds: 10),
+                                    curve: Curves.linear,
+                                    onEnd: () => setState(() {}),
+                                    builder: (context, angle, child) =>
+                                        Transform.rotate(
+                                      angle: angle,
+                                      child: child,
                                     ),
-                                    Chip(
-                                      avatar: const Icon(Icons.arrow_upward,
-                                          size: 18, color: Colors.white),
-                                      label:
-                                          Text(_idrFormat.format(pengeluaran)),
-                                      labelStyle: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white),
-                                      backgroundColor: const Color(0xFFF44336),
+                                    child: Icon(
+                                      Icons.wb_sunny_rounded,
+                                      size: 96,
+                                      color: Colors.white.withOpacity(0.18),
                                     ),
-                                    Chip(
-                                      avatar: const Icon(Icons.receipt_long,
-                                          size: 18, color: Color(0xFF143D59)),
-                                      label: Text('Kas: ${kas.length}'),
-                                      backgroundColor: const Color(0xFFEDE7DC),
-                                      labelStyle: const TextStyle(
-                                          color: Color(0xFF143D59)),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                                const SizedBox(height: 6),
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final barWidth = constraints.maxWidth;
-                                    return Stack(
-                                      children: [
-                                        Container(
-                                          width: barWidth,
-                                          height: 6,
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Colors.grey.withOpacity(0.25),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                        ),
-                                        AnimatedContainer(
-                                          duration:
-                                              const Duration(milliseconds: 350),
-                                          curve: Curves.easeOutCubic,
-                                          width: barWidth * ratio,
-                                          height: 6,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF4CAF50),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                              if (isDawn || isDusk) ...[
+                                // Cloud 1
+                                Align(
+                                  alignment: const Alignment(-1.2, -0.6),
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: -30.0, end: 30.0),
+                                    duration: const Duration(seconds: 4),
+                                    curve: Curves.easeInOut,
+                                    onEnd: () => setState(() {}),
+                                    builder: (context, dx, child) =>
+                                        Transform.translate(
+                                      offset: Offset(dx, 0),
+                                      child: child,
+                                    ),
+                                    child: Icon(
+                                      Icons.cloud,
+                                      size: 64,
+                                      color: Colors.white.withOpacity(0.22),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Saldo: ' + _idrFormat.format(saldo),
-                                  style: TextStyle(
-                                    color: saldo >= 0
-                                        ? Colors.green[800]
-                                        : Colors.red[800],
-                                    fontWeight: FontWeight.bold,
+                                // Cloud 2
+                                Align(
+                                  alignment: const Alignment(1.2, -0.2),
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 30.0, end: -30.0),
+                                    duration: const Duration(seconds: 5),
+                                    curve: Curves.easeInOut,
+                                    onEnd: () => setState(() {}),
+                                    builder: (context, dx, child) =>
+                                        Transform.translate(
+                                      offset: Offset(dx, 0),
+                                      child: child,
+                                    ),
+                                    child: Icon(
+                                      Icons.cloud,
+                                      size: 54,
+                                      color: Colors.white.withOpacity(0.18),
+                                    ),
                                   ),
                                 ),
                               ],
-                            );
-                          },
-                        ),
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => UsahaKasDetailPage(
-                                  folderId: folder['id'],
-                                  folderName: folder['nama']),
-                            ),
-                          );
-                          _loadFolders();
-                        },
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          tooltip: 'Hapus Folder',
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16)),
-                                backgroundColor: const Color(0xFFFFF5E4),
-                                title: const Text('Hapus Folder',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
-                                content: Text(
-                                    'Yakin ingin menghapus folder "${folder['nama']}"? Semua data kas di dalamnya juga akan dihapus.'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('Batal'),
+                              if (isNight)
+                                Align(
+                                  alignment: const Alignment(0.9, -0.85),
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: -3.0, end: 3.0),
+                                    duration: const Duration(seconds: 3),
+                                    curve: Curves.easeInOut,
+                                    onEnd: () => setState(() {}),
+                                    builder: (context, dy, child) =>
+                                        Transform.translate(
+                                      offset: Offset(0, dy),
+                                      child: child,
+                                    ),
+                                    child: Icon(
+                                      Icons.nightlight_round,
+                                      size: 84,
+                                      color: Colors.white.withOpacity(0.16),
+                                    ),
                                   ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text('Hapus',
-                                        style: TextStyle(color: Colors.red)),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Date pill
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: BackdropFilter(
+                                filter:
+                                    ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: Container(
+                                  width: 54,
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.25),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.35),
+                                      width: 1,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 8),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        DateFormat('MMM')
+                                            .format(DateTime.now())
+                                            .toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFEDF2FB),
+                                          fontSize: 12,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        DateTime.now()
+                                            .day
+                                            .toString()
+                                            .padLeft(2, '0'),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 18,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            // Title + subtitle
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Keuangan',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF143D59),
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_greetingText()} • Kelola kas usaha dan folder',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      shadows: [
+                                        Shadow(
+                                          color: Color(0x33000000),
+                                          blurRadius: 2,
+                                          offset: Offset(0, 1),
+                                        )
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
-                            );
-                            if (confirm == true) {
-                              await DatabaseHelper.instance
-                                  .deleteUsahaFolder(folder['id']);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Folder dihapus')),
-                                );
-                              }
-                              _loadFolders();
-                            }
-                          },
+                            ),
+                            // Sky badge: gradient + icon berubah sesuai waktu
+                            _buildSkyBadge(),
+                          ],
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
+              );
+            },
+          ),
+        ),
+      ),
+      body: Builder(
+        builder: (context) {
+          final phase = _getPhase();
+          final List<Color> bodyGrad = phase == 'night'
+              ? const [Color(0xFF232526), Color(0xFF414345)]
+              : phase == 'dawn'
+                  ? const [Color(0xFFFFEFBA), Color(0xFFFFFFD1)]
+                  : phase == 'dusk'
+                      ? const [Color(0xFFFFD1C1), Color(0xFFFFE6E6)]
+                      : const [Color(0xFFFFF7D6), Color(0xFFE6F7FF)];
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: bodyGrad,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
+            ),
+            child: usahaFolders.isEmpty
+                ? const Center(
+                    child: Text('Belum ada folder.',
+                        style:
+                            TextStyle(color: Color(0xFFB0A295), fontSize: 18)))
+                : RefreshIndicator(
+                    onRefresh: _loadFolders,
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: usahaFolders.length,
+                      separatorBuilder: (context, index) => const Divider(
+                        height: 1,
+                        thickness: 0.6,
+                        indent: 56,
+                        endIndent: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final folder = usahaFolders[index];
+                        return ListTile(
+                          dense: true,
+                          visualDensity:
+                              const VisualDensity(horizontal: -2, vertical: -2),
+                          minLeadingWidth: 0,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          leading: Hero(
+                            tag: 'folderIcon_${folder['id']}',
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 255, 255, 255),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: Colors.amber[700]!, width: 1),
+                              ),
+                              child: Icon(Icons.folder,
+                                  color:
+                                      const Color.fromARGB(255, 228, 166, 84),
+                                  size: 22),
+                            ),
+                          ),
+                          title: Hero(
+                            tag: 'folderTitle_${folder['id']}',
+                            flightShuttleBuilder:
+                                (context, animation, direction, from, to) =>
+                                    FadeTransition(
+                                        opacity: animation, child: to.widget),
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: Text(
+                                folder['nama'] ?? '',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5,
+                                  color: Color(0xFF143D59),
+                                  letterSpacing: 0.1,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          subtitle: FutureBuilder<List<Map<String, dynamic>>>(
+                            future: DatabaseHelper.instance
+                                .getUsahaKasList(folder['id']),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Text('Memuat...');
+                              }
+                              final kas = snapshot.data ?? [];
+                              int pemasukan = kas
+                                  .where((k) => k['tipe'] == 'Pemasukan')
+                                  .fold(
+                                      0,
+                                      (a, b) =>
+                                          a + ((b['nominal'] ?? 0) as int));
+                              int pengeluaran = kas
+                                  .where((k) => k['tipe'] == 'Pengeluaran')
+                                  .fold(
+                                      0,
+                                      (a, b) =>
+                                          a + ((b['nominal'] ?? 0) as int));
+                              int saldo = pemasukan - pengeluaran;
+                              return Text(
+                                'Kas ${kas.length} | Masuk ${_idrFormat.format(pemasukan)} | Keluar ${_idrFormat.format(pengeluaran)} | Saldo ${_idrFormat.format(saldo)}',
+                                style: TextStyle(
+                                  color: Colors.grey.shade700,
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            },
+                          ),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UsahaKasDetailPage(
+                                    folderId: folder['id'],
+                                    folderName: folder['nama']),
+                              ),
+                            );
+                            _loadFolders();
+                          },
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                                minWidth: 32, minHeight: 32),
+                            splashRadius: 18,
+                            tooltip: 'Hapus Folder',
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
+                                  backgroundColor: const Color(0xFFFFF5E4),
+                                  title: const Text('Hapus Folder',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  content: Text(
+                                      'Yakin ingin menghapus folder "${folder['nama']}"? Semua data kas di dalamnya juga akan dihapus.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('Batal'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text('Hapus',
+                                          style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                await DatabaseHelper.instance
+                                    .deleteUsahaFolder(folder['id']);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Folder dihapus')),
+                                  );
+                                }
+                                _loadFolders();
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -311,6 +688,128 @@ class _UsahaPageState extends State<UsahaPage> {
         backgroundColor: const Color(0xFFF4B41A),
         foregroundColor: const Color(0xFF143D59),
         tooltip: 'Tambah Folder',
+      ),
+    );
+  }
+}
+
+class _FolderMiniIcon extends StatelessWidget {
+  final double width;
+  final double height;
+
+  const _FolderMiniIcon({super.key, this.width = 44, this.height = 30});
+
+  @override
+  Widget build(BuildContext context) {
+    const bodyColor = Color(0xFFFFD36E); // badan folder
+    const tabColor = Color(0xFFFFE29C); // tab folder
+    const borderColor = Color(0xFFF1C85A); // garis folder
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Badan folder
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            top: height * 0.28,
+            child: Container(
+              decoration: BoxDecoration(
+                color: bodyColor,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: borderColor, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Tab folder
+          Positioned(
+            left: width * 0.06,
+            top: 0,
+            width: width * 0.46,
+            height: height * 0.42,
+            child: Container(
+              decoration: BoxDecoration(
+                color: tabColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(5),
+                  topRight: Radius.circular(5),
+                ),
+                border: Border.all(color: borderColor, width: 1),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String label;
+  final String value;
+  const _StatPill({
+    required this.color,
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white24, width: 1),
+        ),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+              ),
+              padding: const EdgeInsets.all(7),
+              child: Icon(icon, size: 16, color: Colors.white),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                  Text(value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -830,8 +1329,25 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Ringkasan untuk AppBar
+    final pemasukan = kasList
+        .where((k) => k['tipe'] == 'Pemasukan')
+        .fold<int>(0, (a, b) => a + ((b['nominal'] ?? 0) as int));
+    final pengeluaran = kasList
+        .where((k) => k['tipe'] == 'Pengeluaran')
+        .fold<int>(0, (a, b) => a + ((b['nominal'] ?? 0) as int));
+    final saldo = pemasukan - pengeluaran;
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        elevation: 10,
+        shadowColor: Colors.black.withOpacity(0.25),
+        backgroundColor: const Color.fromARGB(0, 216, 208, 208),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
         title: Hero(
           tag: 'folderTitle_${widget.folderId}',
           flightShuttleBuilder: (context, animation, direction, from, to) =>
@@ -858,6 +1374,139 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
               end: Alignment.bottomRight,
             ),
           ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: -50,
+                left: -30,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.18),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.16),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 1,
+                  color: Colors.white.withOpacity(0.12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(70),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text('Masuk',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          )),
+                      const SizedBox(height: 2),
+                      Text(
+                        _idrFormat.format(pemasukan),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text('Keluar',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          )),
+                      const SizedBox(height: 2),
+                      Text(
+                        _idrFormat.format(pengeluaran),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text('Saldo',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          )),
+                      const SizedBox(height: 2),
+                      Text(
+                        _idrFormat.format(saldo),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: Container(
@@ -874,96 +1523,9 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                     style: TextStyle(color: Color(0xFFB0A295), fontSize: 18)))
             : ListView.builder(
                 physics: const BouncingScrollPhysics(),
-                itemCount: kasList.length + 1,
+                itemCount: kasList.length,
                 itemBuilder: (context, index) {
-                  if (index == 0) {
-                    // Summary header
-                    final pemasukan = kasList
-                        .where((k) => k['tipe'] == 'Pemasukan')
-                        .fold<int>(
-                            0, (a, b) => a + ((b['nominal'] ?? 0) as int));
-                    final pengeluaran = kasList
-                        .where((k) => k['tipe'] == 'Pengeluaran')
-                        .fold<int>(
-                            0, (a, b) => a + ((b['nominal'] ?? 0) as int));
-                    final saldo = pemasukan - pengeluaran;
-                    final total = (pemasukan + pengeluaran).toDouble();
-                    final ratio =
-                        total == 0 ? 0.5 : (pemasukan / total).clamp(0.0, 1.0);
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                      child: Column(
-                        children: [
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              final maxW = constraints.maxWidth;
-                              final columns =
-                                  maxW < 380 ? 1 : (maxW < 700 ? 2 : 3);
-                              const spacing = 8.0;
-                              final itemWidth =
-                                  (maxW - spacing * (columns - 1)) / columns;
-                              return Wrap(
-                                spacing: spacing,
-                                runSpacing: spacing,
-                                children: [
-                                  _SummaryCard(
-                                    width: itemWidth,
-                                    color: const Color(0xFF4CAF50),
-                                    icon: Icons.arrow_downward,
-                                    title: 'Pemasukan',
-                                    value: _idrFormat.format(pemasukan),
-                                  ),
-                                  _SummaryCard(
-                                    width: itemWidth,
-                                    color: const Color(0xFFF44336),
-                                    icon: Icons.arrow_upward,
-                                    title: 'Pengeluaran',
-                                    value: _idrFormat.format(pengeluaran),
-                                  ),
-                                  _SummaryCard(
-                                    width: itemWidth,
-                                    color: saldo >= 0
-                                        ? const Color(0xFF2E7D32)
-                                        : const Color(0xFFC62828),
-                                    icon: Icons.account_balance_wallet,
-                                    title: 'Saldo',
-                                    value: _idrFormat.format(saldo),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          LayoutBuilder(
-                            builder: (context, constraints) => Stack(
-                              children: [
-                                Container(
-                                  width: constraints.maxWidth,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.withOpacity(0.25),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 350),
-                                  curve: Curves.easeOutCubic,
-                                  width: constraints.maxWidth * ratio,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF4CAF50),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                      ),
-                    );
-                  }
-                  final kas = kasList[index - 1];
+                  final kas = kasList[index];
                   final isMasuk = kas['tipe'] == 'Pemasukan';
                   return TweenAnimationBuilder<double>(
                     duration: const Duration(milliseconds: 250),
@@ -976,40 +1538,49 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                     child: Card(
                       elevation: 2,
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 7),
+                          horizontal: 10, vertical: 6),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(12)),
                       color: isMasuk
                           ? const Color(0xFFE8F5E9)
                           : const Color(0xFFFFEBEE),
                       child: ListTile(
+                        dense: true,
+                        visualDensity:
+                            const VisualDensity(horizontal: -1, vertical: -2),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                            horizontal: 12, vertical: 6),
                         leading: CircleAvatar(
+                          radius: 14,
                           backgroundColor: isMasuk
                               ? const Color(0xFF4CAF50)
                               : const Color(0xFFF44336),
                           child: Icon(
-                              isMasuk
-                                  ? Icons.arrow_downward
-                                  : Icons.arrow_upward,
-                              color: Colors.white),
+                            isMasuk ? Icons.arrow_downward : Icons.arrow_upward,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                         title: Text(
                           kas['keterangan'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        subtitle: Text(
-                          '${kas['tanggal']} | ${kas['tipe']}',
-                          style: const TextStyle(fontSize: 13),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Row(
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            Text(
+                              '${kas['tanggal']} | ${kas['tipe']}',
+                              style: const TextStyle(fontSize: 12.5),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
                             Text(
                               _idrFormat.format(kas['nominal']),
                               style: TextStyle(
@@ -1017,18 +1588,31 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                                 color: isMasuk
                                     ? Colors.green[800]
                                     : Colors.red[800],
-                                fontSize: 15,
+                                fontSize: 13,
                               ),
                             ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             IconButton(
                               icon: const Icon(Icons.edit,
                                   color: Color(0xFFF4B41A)),
                               tooltip: 'Edit',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 32, minHeight: 32),
+                              splashRadius: 18,
                               onPressed: () => _showEditKasDialog(kas),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               tooltip: 'Hapus',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 32, minHeight: 32),
+                              splashRadius: 18,
                               onPressed: () async {
                                 final confirm = await showDialog<bool>(
                                   context: context,
@@ -1079,14 +1663,12 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                 },
               ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.small(
         heroTag: 'inputBanyak',
         onPressed: _showMultiInputUsahaKas,
         backgroundColor: const Color(0xFF4CAF50),
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.playlist_add),
-        label: const Text('Input Banyak'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.playlist_add),
         tooltip: 'Input Kas Banyak',
       ),
     );
