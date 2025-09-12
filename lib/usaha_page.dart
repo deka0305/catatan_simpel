@@ -25,6 +25,464 @@ class _WaveAppBarClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
+// === Fancy animated sky elements (Sun / Moon / Clouds / Shooting star) ===
+
+class _SunRaysPainter extends CustomPainter {
+  final Color color;
+  final int rays;
+  _SunRaysPainter({required this.color, this.rays = 16});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final rInner = size.shortestSide * 0.32;
+    final rOuter = size.shortestSide * 0.48;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    for (int i = 0; i < rays; i++) {
+      final a = (2 * math.pi / rays) * i;
+      final p1 = center + Offset(math.cos(a), math.sin(a)) * rInner;
+      final p2 = center + Offset(math.cos(a), math.sin(a)) * rOuter;
+      canvas.drawLine(p1, p2, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SunRaysPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.rays != rays;
+  }
+}
+
+class _HedonSun extends StatefulWidget {
+  final double size; // logical pixels of the whole widget
+  const _HedonSun({Key? key, this.size = 96}) : super(key: key);
+
+  @override
+  State<_HedonSun> createState() => _HedonSunState();
+}
+
+class _HedonSunState extends State<_HedonSun>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _rot;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+    _rot = Tween<double>(begin: 0, end: 2 * math.pi).animate(CurvedAnimation(parent: _ctrl, curve: Curves.linear));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.size;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Soft outer glow
+          Container(
+            width: size * 1.3,
+            height: size * 1.3,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFFFFF59D).withOpacity(0.35),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          // Rotating rays
+          AnimatedBuilder(
+            animation: _rot,
+            builder: (context, _) => Transform.rotate(
+              angle: _rot.value,
+              child: CustomPaint(
+                size: Size.square(size),
+                painter: _SunRaysPainter(
+                  color: Colors.white.withOpacity(0.55),
+                  rays: 18,
+                ),
+              ),
+            ),
+          ),
+          // Core disc
+          Container(
+            width: size * 0.46,
+            height: size * 0.46,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [Color(0xFFFFFDE7), Color(0xFFFFD54F)],
+                stops: [0.1, 1.0],
+              ),
+              boxShadow: [
+                BoxShadow(color: Color(0x66FFC107), blurRadius: 16, spreadRadius: 4),
+              ],
+            ),
+          ),
+          // Tiny orbiting flare dot
+          AnimatedBuilder(
+            animation: _rot,
+            builder: (context, _) {
+              final r = size * 0.36;
+              final dx = math.cos(-_rot.value) * r;
+              final dy = math.sin(-_rot.value) * r;
+              return Transform.translate(
+                offset: Offset(dx, dy),
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const RadialGradient(colors: [Colors.white, Color(0x00FFFFFF)]),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.white70, blurRadius: 6, spreadRadius: 1),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoonCratersPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final base = Offset(size.width / 2, size.height / 2);
+    final craters = <Offset>[
+      base + Offset(-size.width * 0.18, -size.height * 0.12),
+      base + Offset(size.width * 0.10, -size.height * 0.20),
+      base + Offset(size.width * 0.20, size.height * 0.10),
+      base + Offset(-size.width * 0.12, size.height * 0.16),
+    ];
+    for (final c in craters) {
+      paint.color = const Color(0xFFB0BEC5);
+      canvas.drawCircle(c, size.shortestSide * 0.08, paint);
+      paint.color = const Color(0xFF90A4AE);
+      canvas.drawCircle(c + const Offset(2, 2), size.shortestSide * 0.05, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _HedonMoon extends StatefulWidget {
+  final double size;
+  const _HedonMoon({Key? key, this.size = 84}) : super(key: key);
+
+  @override
+  State<_HedonMoon> createState() => _HedonMoonState();
+}
+
+class _HedonMoonState extends State<_HedonMoon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.size;
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        final dy = lerpDouble(-3, 3, _ctrl.value) ?? 0;
+        return Transform.translate(
+          offset: Offset(0, dy),
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Outer night glow
+                Container(
+                  width: size * 1.25,
+                  height: size * 1.25,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF9FA8DA).withOpacity(0.28),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+                // Moon disc with gradient
+                Container(
+                  width: size * 0.56,
+                  height: size * 0.56,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0xFFECEFF1), Color(0xFFB0BEC5)],
+                      center: Alignment(-0.3, -0.3),
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: Color(0x3390A4AE), blurRadius: 10, spreadRadius: 2),
+                    ],
+                  ),
+                ),
+                // Craters
+                CustomPaint(
+                  size: Size.square(size * 0.56),
+                  painter: _MoonCratersPainter(),
+                ),
+                // Thin crescent highlight overlay
+                IgnorePointer(
+                  child: Container(
+                    width: size * 0.58,
+                    height: size * 0.58,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: SweepGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.25),
+                          Colors.transparent,
+                        ],
+                        startAngle: -0.5,
+                        endAngle: 0.7,
+                        center: Alignment.centerLeft,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CloudShape extends StatelessWidget {
+  final double width;
+  final double height;
+  final Color color;
+  const _CloudShape({Key? key, required this.width, required this.height, required this.color}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        children: [
+          Positioned(
+            left: width * 0.05,
+            top: height * 0.35,
+            right: width * 0.05,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(height * 0.3),
+              ),
+            ),
+          ),
+          Positioned(
+            left: width * 0.18,
+            top: height * 0.05,
+            child: Container(
+              width: width * 0.38,
+              height: height * 0.65,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(height * 0.5),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2)),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: width * 0.4,
+            top: 0,
+            child: Container(
+              width: width * 0.34,
+              height: height * 0.62,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(height * 0.5),
+              ),
+            ),
+          ),
+          Positioned(
+            left: width * 0.02,
+            top: height * 0.12,
+            child: Container(
+              width: width * 0.32,
+              height: height * 0.52,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(height * 0.5),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ParallaxCloud extends StatefulWidget {
+  final double width;
+  final double height;
+  final Duration duration;
+  final double dx; // horizontal travel
+  final double start;
+  final Color color;
+  const _ParallaxCloud({
+    Key? key,
+    required this.width,
+    required this.height,
+    required this.duration,
+    required this.dx,
+    required this.start,
+    required this.color,
+  }) : super(key: key);
+
+  @override
+  State<_ParallaxCloud> createState() => _ParallaxCloudState();
+}
+
+class _ParallaxCloudState extends State<_ParallaxCloud>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: widget.duration)..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        final t = Curves.easeInOut.transform(_ctrl.value);
+        final offset = lerpDouble(-widget.dx, widget.dx, t) ?? 0;
+        return Transform.translate(
+          offset: Offset(offset, 0),
+          child: _CloudShape(
+            width: widget.width,
+            height: widget.height,
+            color: widget.color,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ShootingStar extends StatefulWidget {
+  final Duration duration;
+  final Alignment begin;
+  final Alignment end;
+  const _ShootingStar({Key? key, this.duration = const Duration(seconds: 3), this.begin = const Alignment(1.2, -0.9), this.end = const Alignment(-1.2, -0.3)}) : super(key: key);
+
+  @override
+  State<_ShootingStar> createState() => _ShootingStarState();
+}
+
+class _ShootingStarState extends State<_ShootingStar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: widget.duration);
+    _restart();
+  }
+
+  void _restart() async {
+    while (mounted) {
+      await Future.delayed(Duration(milliseconds: 700 + math.Random().nextInt(2200)));
+      if (!mounted) return;
+      await _ctrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        final t = Curves.easeOutQuart.transform(_ctrl.value);
+        final x = lerpDouble(widget.begin.x, widget.end.x, t)!;
+        final y = lerpDouble(widget.begin.y, widget.end.y, t)!;
+        return Align(
+          alignment: Alignment(x, y),
+          child: Transform.rotate(
+            angle: -math.pi / 6,
+            child: Container(
+              width: 56,
+              height: 2,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.white, Colors.transparent],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                boxShadow: [
+                  BoxShadow(color: Colors.white70, blurRadius: 4, spreadRadius: 1),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class UsahaPage extends StatefulWidget {
   const UsahaPage({Key? key}) : super(key: key);
 
@@ -100,45 +558,20 @@ class _UsahaPageState extends State<UsahaPage> {
 
     // Gradients by time
     final List<Color> grad = isNight
-        ? const [Color(0xFF1E3C72), Color(0xFF2A5298)] // deep blue
+        ? const [Color.fromARGB(255, 81, 121, 194), Color.fromARGB(255, 69, 121, 211)] // deep blue
         : isDawn
             ? const [Color(0xFFFFD194), Color(0xFF70E1F5)] // sunrise
             : isDusk
                 ? const [Color(0xFFFFA5A5), Color(0xFF7F7FD5)] // sunset
                 : const [Color(0xFFFFF19A), Color(0xFF7FD7FF)]; // bright day
 
-    // Icon layer animation
+    // Icon layer animation (replaced with fancy widgets)
     final Widget iconLayer = isNight
-        // Moon bobbing slightly
-        ? TweenAnimationBuilder<double>(
-            tween: Tween(begin: -2.0, end: 2.0),
-            duration: const Duration(seconds: 3),
-            curve: Curves.easeInOut,
-            builder: (context, v, child) => Transform.translate(
-              offset: Offset(0, v),
-              child: child,
-            ),
-            onEnd: () => setState(() {}),
-            child: const Icon(Icons.nightlight_round,
-                color: Colors.white, size: 18),
-          )
+        ? const _HedonMoon(size: 22)
         : isDay
-            // Sun rotating slowly
-            ? TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 6.283),
-                duration: const Duration(seconds: 4),
-                curve: Curves.linear,
-                builder: (context, angle, child) => Transform.rotate(
-                  angle: angle,
-                  child: child,
-                ),
-                onEnd: () => setState(() {}),
-                child: const Icon(Icons.wb_sunny_rounded,
-                    color: Colors.white, size: 18),
-              )
-            // Dawn/Dusk with drifting cloud
+            ? const _HedonSun(size: 24)
             : TweenAnimationBuilder<double>(
-                tween: Tween(begin: -6.0, end: 6.0),
+                tween: Tween(begin: -5.0, end: 5.0),
                 duration: const Duration(seconds: 2),
                 curve: Curves.easeInOut,
                 builder: (context, value, child) => Transform.translate(
@@ -146,7 +579,11 @@ class _UsahaPageState extends State<UsahaPage> {
                   child: child,
                 ),
                 onEnd: () => setState(() {}),
-                child: const Icon(Icons.cloud, color: Colors.white, size: 18),
+                child: _CloudShape(
+                  width: 26,
+                  height: 16,
+                  color: Colors.white.withOpacity(0.9),
+                ),
               );
 
     // Twinkling stars for night
@@ -241,7 +678,7 @@ class _UsahaPageState extends State<UsahaPage> {
               final bool isDay = !isNight && !isDawn && !isDusk;
 
               final List<Color> headerGrad = isNight
-                  ? const [Color(0xFF0F2027), Color(0xFF203A43)] // deep night
+                  ? const [Color.fromARGB(255, 31, 64, 78), Color.fromARGB(255, 61, 109, 126)] // deep night
                   : isDawn
                       ? const [Color(0xFFFFD194), Color(0xFF70E1F5)] // sunrise
                       : isDusk
@@ -273,88 +710,129 @@ class _UsahaPageState extends State<UsahaPage> {
                           padding: const EdgeInsets.only(top: 6),
                           child: Stack(
                             children: [
-                              if (isDay)
+                              if (isDay) ...[
                                 Align(
-                                  alignment: const Alignment(0.95, -0.9),
-                                  child: TweenAnimationBuilder<double>(
-                                    tween: Tween(begin: 0.0, end: 6.283),
-                                    duration: const Duration(seconds: 10),
-                                    curve: Curves.linear,
-                                    onEnd: () => setState(() {}),
-                                    builder: (context, angle, child) =>
-                                        Transform.rotate(
-                                      angle: angle,
-                                      child: child,
-                                    ),
-                                    child: Icon(
-                                      Icons.wb_sunny_rounded,
-                                      size: 96,
-                                      color: Colors.white.withOpacity(0.18),
-                                    ),
+                                  alignment: const Alignment(0.9, -0.92),
+                                  child: Opacity(
+                                    opacity: 0.9,
+                                    child: const _HedonSun(size: 96),
                                   ),
                                 ),
-                              if (isDawn || isDusk) ...[
-                                // Cloud 1
                                 Align(
-                                  alignment: const Alignment(-1.2, -0.6),
-                                  child: TweenAnimationBuilder<double>(
-                                    tween: Tween(begin: -30.0, end: 30.0),
-                                    duration: const Duration(seconds: 4),
-                                    curve: Curves.easeInOut,
-                                    onEnd: () => setState(() {}),
-                                    builder: (context, dx, child) =>
-                                        Transform.translate(
-                                      offset: Offset(dx, 0),
-                                      child: child,
-                                    ),
-                                    child: Icon(
-                                      Icons.cloud,
-                                      size: 64,
-                                      color: Colors.white.withOpacity(0.22),
-                                    ),
-                                  ),
-                                ),
-                                // Cloud 2
-                                Align(
-                                  alignment: const Alignment(1.2, -0.2),
-                                  child: TweenAnimationBuilder<double>(
-                                    tween: Tween(begin: 30.0, end: -30.0),
+                                  alignment: const Alignment(-0.9, -0.55),
+                                  child: _ParallaxCloud(
+                                    width: 110,
+                                    height: 55,
                                     duration: const Duration(seconds: 5),
-                                    curve: Curves.easeInOut,
+                                    dx: 24,
+                                    start: -1.0,
+                                    color: Colors.white.withOpacity(0.20),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: const Alignment(0.7, -0.25),
+                                  child: _ParallaxCloud(
+                                    width: 90,
+                                    height: 46,
+                                    duration: const Duration(seconds: 6),
+                                    dx: 20,
+                                    start: 1.0,
+                                    color: Colors.white.withOpacity(0.16),
+                                  ),
+                                ),
+                              ],
+                              if (isDawn || isDusk) ...[
+                                Align(
+                                  alignment: const Alignment(0.85, -0.88),
+                                  child: Opacity(
+                                    opacity: 0.75,
+                                    child: const _HedonSun(size: 84),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: const Alignment(-1.1, -0.55),
+                                  child: _ParallaxCloud(
+                                    width: 120,
+                                    height: 60,
+                                    duration: const Duration(seconds: 4),
+                                    dx: 30,
+                                    start: -1.0,
+                                    color: Colors.white.withOpacity(0.26),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: const Alignment(1.05, -0.2),
+                                  child: _ParallaxCloud(
+                                    width: 100,
+                                    height: 52,
+                                    duration: const Duration(seconds: 5),
+                                    dx: 26,
+                                    start: 1.0,
+                                    color: Colors.white.withOpacity(0.22),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: const Alignment(-0.2, -0.35),
+                                  child: _ParallaxCloud(
+                                    width: 80,
+                                    height: 44,
+                                    duration: const Duration(seconds: 6),
+                                    dx: 18,
+                                    start: 0.0,
+                                    color: Colors.white.withOpacity(0.18),
+                                  ),
+                                ),
+                              ],
+                              if (isNight) ...[
+                                Align(
+                                  alignment: const Alignment(0.9, -0.86),
+                                  child: Opacity(
+                                    opacity: 0.85,
+                                    child: const _HedonMoon(size: 84),
+                                  ),
+                                ),
+                                const _ShootingStar(),
+                                // twinkles
+                                Positioned(
+                                  left: 28,
+                                  top: 24,
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0.3, end: 1.0),
+                                    duration: const Duration(milliseconds: 1400),
                                     onEnd: () => setState(() {}),
-                                    builder: (context, dx, child) =>
-                                        Transform.translate(
-                                      offset: Offset(dx, 0),
-                                      child: child,
+                                    builder: (context, o, _) => Opacity(
+                                      opacity: o,
+                                      child: const Icon(Icons.star_rate_rounded, color: Colors.white, size: 8),
                                     ),
-                                    child: Icon(
-                                      Icons.cloud,
-                                      size: 54,
-                                      color: Colors.white.withOpacity(0.18),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 38,
+                                  top: 18,
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 1.0, end: 0.4),
+                                    duration: const Duration(milliseconds: 1200),
+                                    onEnd: () => setState(() {}),
+                                    builder: (context, o, _) => Opacity(
+                                      opacity: o,
+                                      child: const Icon(Icons.star_rate_rounded, color: Colors.white, size: 7),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 28,
+                                  top: 64,
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0.4, end: 1.0),
+                                    duration: const Duration(milliseconds: 1600),
+                                    onEnd: () => setState(() {}),
+                                    builder: (context, o, _) => Opacity(
+                                      opacity: o,
+                                      child: const Icon(Icons.star_rate_rounded, color: Colors.white, size: 6),
                                     ),
                                   ),
                                 ),
                               ],
-                              if (isNight)
-                                Align(
-                                  alignment: const Alignment(0.9, -0.85),
-                                  child: TweenAnimationBuilder<double>(
-                                    tween: Tween(begin: -3.0, end: 3.0),
-                                    duration: const Duration(seconds: 3),
-                                    curve: Curves.easeInOut,
-                                    onEnd: () => setState(() {}),
-                                    builder: (context, dy, child) =>
-                                        Transform.translate(
-                                      offset: Offset(0, dy),
-                                      child: child,
-                                    ),
-                                    child: Icon(
-                                      Icons.nightlight_round,
-                                      size: 84,
-                                      color: Colors.white.withOpacity(0.16),
-                                    ),
-                                  ),
-                                ),
                             ],
                           ),
                         ),
@@ -441,7 +919,7 @@ class _UsahaPageState extends State<UsahaPage> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${_greetingText()} • Kelola kas usaha dan folder',
+                                    '${_greetingText()} • Semangat berusaha!',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.white,
@@ -475,7 +953,7 @@ class _UsahaPageState extends State<UsahaPage> {
         builder: (context) {
           final phase = _getPhase();
           final List<Color> bodyGrad = phase == 'night'
-              ? const [Color(0xFF232526), Color(0xFF414345)]
+              ? const [Color.fromARGB(255, 128, 159, 177), Color.fromARGB(255, 99, 133, 165)]
               : phase == 'dawn'
                   ? const [Color(0xFFFFEFBA), Color(0xFFFFFFD1)]
                   : phase == 'dusk'
