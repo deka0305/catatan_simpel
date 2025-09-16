@@ -22,6 +22,7 @@ class _NotesPageState extends State<NotesPage>
 
   late final AnimationController _cloudController;
   late final List<_CloudConfig> _clouds;
+  late final List<_StarConfig> _stars;
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -46,6 +47,16 @@ class _NotesPageState extends State<NotesPage>
         size: 70 + random.nextDouble() * 60,
         opacity: 0.45 + random.nextDouble() * 0.4,
         phase: random.nextDouble(),
+      ),
+    );
+    _stars = List.generate(
+      18,
+      (index) => _StarConfig(
+        leftFactor: random.nextDouble(),
+        topFactor: 0.1 + random.nextDouble() * 0.5,
+        size: 8 + random.nextDouble() * 10,
+        twinkleSpeed: 0.6 + random.nextDouble() * 1.4,
+        phase: random.nextDouble() * 2 * pi,
       ),
     );
     _loadFolders();
@@ -99,6 +110,11 @@ class _NotesPageState extends State<NotesPage>
       return 0;
     });
     return filtered;
+  }
+
+  bool get _isNight {
+    final hour = DateTime.now().hour;
+    return hour >= 18 || hour < 6;
   }
 
   Future<void> _loadFolders() async {
@@ -197,18 +213,36 @@ class _NotesPageState extends State<NotesPage>
       child: AnimatedBuilder(
         animation: _cloudController,
         builder: (context, _) {
+          final isNight = _isNight;
+          final gradientColors = isNight
+              ? <Color>[const Color(0xFF1F2E55), const Color(0xFF162447)]
+              : <Color>[const Color(0xFF0F4C75), const Color(0xFF3E92CC)];
+          final overlayColors = isNight
+              ? <Color>[
+                  Colors.white.withOpacity(0.12),
+                  Colors.white.withOpacity(0.03),
+                ]
+              : <Color>[
+                  Colors.white.withOpacity(0.22),
+                  Colors.white.withOpacity(0.08),
+                ];
+          final tagline = isNight
+              ? 'Catatanmu siap menemani malam'
+              : 'Catatan pentingmu tertata rapi';
           return Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0F4C75), Color(0xFF3E92CC)],
+                colors: gradientColors,
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x400F4C75),
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
+                  color: isNight
+                      ? const Color.fromRGBO(13, 22, 49, 0.45)
+                      : const Color(0x400F4C75),
+                  blurRadius: isNight ? 18 : 12,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
@@ -216,44 +250,126 @@ class _NotesPageState extends State<NotesPage>
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
                 final height = constraints.maxHeight;
+                final cycle = _cloudController.value;
+                final moonFloatY = sin(cycle * 2 * pi) * 10;
+                final moonFloatX = cos(cycle * 2 * pi) * 6;
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Positioned(
-                      top: -32,
-                      right: -24,
-                      child: IgnorePointer(
-                        child: Container(
-                          width: 140,
-                          height: 140,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Color(0xFFFFE082), Color(0xFFFFC046)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                    if (isNight)
+                      Positioned(
+                        top: -28 + moonFloatY,
+                        right: -22 + moonFloatX,
+                        child: IgnorePointer(
+                          child: SizedBox(
+                            width: 140,
+                            height: 140,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 130,
+                                  height: 130,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        Color.fromARGB(255, 240, 239,
+                                            239), // pink fuchsia kemerahan
+                                        Color.fromARGB(
+                                            255, 182, 173, 167), // oranye tua
+                                        Color.fromARGB(
+                                            255, 161, 155, 153), // oranye-merah
+                                      ],
+                                      stops: [0.0, 0.7, 1.0],
+                                      center: Alignment(-0.25, -0.25),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Positioned(
+                        top: -32,
+                        right: -24,
+                        child: IgnorePointer(
+                          child: Container(
+                            width: 140,
+                            height: 140,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0xFFFFE082),
+                                  Color(0xFFFFC046),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    for (final cloud in _clouds)
-                      Positioned(
-                        left: ((cloud.phase +
-                                        _cloudController.value * cloud.speed) %
-                                    1) *
-                                (width + cloud.size) -
-                            cloud.size,
-                        top: height * cloud.topFactor,
-                        child: Opacity(
-                          opacity: cloud.opacity,
-                          child: Icon(
-                            Icons.cloud_rounded,
-                            size: cloud.size,
-                            color: Colors.white.withOpacity(0.9),
+                    if (isNight)
+                      for (final star in _stars)
+                        Positioned(
+                          left: ((star.leftFactor +
+                                          cycle * 0.12 * star.twinkleSpeed) %
+                                      1) *
+                                  (width + 40) -
+                              20,
+                          top: height *
+                              max(
+                                0.05,
+                                min(
+                                  0.85,
+                                  star.topFactor +
+                                      0.02 *
+                                          sin(((cycle * star.twinkleSpeed) +
+                                                  star.phase) *
+                                              2 *
+                                              pi),
+                                ),
+                              ),
+                          child: Opacity(
+                            opacity: 0.45 +
+                                0.55 *
+                                    sin(
+                                      ((_cloudController.value *
+                                                  star.twinkleSpeed) +
+                                              star.phase) *
+                                          2 *
+                                          pi,
+                                    ).abs(),
+                            child: Icon(
+                              Icons.star_rounded,
+                              size: star.size,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                    else
+                      for (final cloud in _clouds)
+                        Positioned(
+                          left: ((cloud.phase +
+                                          _cloudController.value *
+                                              cloud.speed) %
+                                      1) *
+                                  (width + cloud.size) -
+                              cloud.size,
+                          top: height * cloud.topFactor,
+                          child: Opacity(
+                            opacity: cloud.opacity,
+                            child: Icon(
+                              Icons.cloud_rounded,
+                              size: cloud.size,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
                           ),
                         ),
-                      ),
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: ClipPath(
@@ -262,10 +378,7 @@ class _NotesPageState extends State<NotesPage>
                           height: height * 0.4,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [
-                                Colors.white.withOpacity(0.22),
-                                Colors.white.withOpacity(0.08),
-                              ],
+                              colors: overlayColors,
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
@@ -277,7 +390,9 @@ class _NotesPageState extends State<NotesPage>
                       bottom: false,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 18),
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -285,8 +400,8 @@ class _NotesPageState extends State<NotesPage>
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
+                                children: [
+                                  const Text(
                                     'Catatan',
                                     style: TextStyle(
                                       color: Colors.white,
@@ -294,10 +409,10 @@ class _NotesPageState extends State<NotesPage>
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 6),
+                                  const SizedBox(height: 6),
                                   Text(
-                                    'Catatan pentingmu tertata rapi',
-                                    style: TextStyle(
+                                    tagline,
+                                    style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -310,8 +425,10 @@ class _NotesPageState extends State<NotesPage>
                               color: Colors.white24,
                               shape: const CircleBorder(),
                               child: IconButton(
-                                icon: const Icon(Icons.cloud_sync,
-                                    color: Colors.white),
+                                icon: const Icon(
+                                  Icons.cloud_sync,
+                                  color: Colors.white,
+                                ),
                                 tooltip: 'Sinkronisasi Data',
                                 onPressed: _goToSyncAllDataPage,
                               ),
@@ -342,9 +459,65 @@ class _NotesPageState extends State<NotesPage>
     final fontSize = clamp(w * 0.038, 14, 18);
     final iconSize = clamp(w * 0.045, 20, 24);
     final filteredNotes = _filteredNotes();
+    final isNight = _isNight;
+
+    final backgroundGradientColors = isNight
+        ? <Color>[const Color.fromARGB(255, 197, 44, 138), const Color(0xFF283A63)]
+        : <Color>[const Color(0xFFF7F8FB), const Color(0xFFFFFBF5)];
+    final topBubbleColor = isNight
+        ? const Color.fromRGBO(255, 219, 169, 0.24)
+        : const Color.fromRGBO(244, 180, 26, 0.18);
+    final bottomBubbleColor = isNight
+        ? const Color.fromARGB(60, 94, 133, 224)
+        : const Color.fromRGBO(20, 61, 89, 0.12);
+    final dropdownTextColor = isNight ? Colors.white : const Color(0xFF143D59);
+    final dropdownGradient = isNight
+        ? <Color>[const Color.fromARGB(255, 51, 72, 121), const Color(0xFF3B4F86)]
+        : <Color>[const Color(0xFFFFE0B2), const Color(0xFFFFF5E4)];
+    final dropdownShadowColor = isNight
+        ? const Color.fromRGBO(16, 27, 56, 0.45)
+        : const Color.fromRGBO(244, 180, 26, 0.25);
+    final actionsGradient = isNight
+        ? <Color>[const Color(0xFF1A2546), const Color(0xFF263765)]
+        : <Color>[const Color(0xFF0F4C75), const Color(0xFF143D59)];
+    final actionsShadowColor = isNight
+        ? const Color.fromRGBO(0, 0, 0, 0.35)
+        : const Color.fromRGBO(0, 0, 0, 0.18);
+    final searchFillColor = isNight ? const Color(0xFF253A63) : Colors.white;
+    final searchIconColor =
+        isNight ? const Color(0xFFE7ECFF) : const Color(0xFF143D59);
+    final searchTextColor = isNight ? Colors.white : const Color(0xFF143D59);
+    final hintTextColor = isNight
+        ? const Color.fromRGBO(199, 207, 233, 0.75)
+        : const Color(0xFF8C8C8C);
+    final dismissGradient = isNight
+        ? <Color>[const Color(0xFF182443), const Color(0xFF22315C)]
+        : <Color>[const Color(0xFF143D59), const Color(0xFF1B5F8C)];
+    final cardGradient = isNight
+        ? <Color>[const Color.fromARGB(141, 199, 53, 228), const Color(0xFF324A81)]
+        : <Color>[const Color(0xFFFFFFFF), const Color(0xFFFFF5E4)];
+    final pinnedCardGradient = isNight
+        ? <Color>[const Color(0xFF3D5A9B), const Color(0xFF4F72B6)]
+        : <Color>[const Color(0xFFFFD180), const Color(0xFFFFF1CD)];
+    final leadingGradient = isNight
+        ? <Color>[const Color(0xFF253A69), const Color(0xFF3D5391)]
+        : <Color>[const Color(0xFF0F4C75), const Color(0xFF143D59)];
+    final cardShadowColor = isNight
+        ? const Color.fromRGBO(4, 8, 20, 0.45)
+        : const Color.fromRGBO(0, 0, 0, 0.08);
+    final cardTitleColor = isNight ? Colors.white : const Color(0xFF143D59);
+    final cardSubtitleColor = isNight
+        ? const Color.fromRGBO(220, 230, 255, 0.82)
+        : const Color(0xFF6B6B6B);
+    final pinColor =
+        isNight ? const Color(0xFFFFE28C) : const Color(0xFFF4B41A);
+    final fabShadowColor = isNight
+        ? const Color.fromRGBO(250, 210, 120, 0.45)
+        : const Color.fromRGBO(244, 180, 26, 0.4);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FB),
+      backgroundColor:
+          isNight ? const Color(0xFF1F2B4C) : const Color(0xFFF7F8FB),
       appBar: _buildAnimatedAppBar(),
       body: SafeArea(
         child: Stack(
@@ -353,9 +526,9 @@ class _NotesPageState extends State<NotesPage>
             Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFFF7F8FB), Color(0xFFFFFBF5)],
+                      colors: backgroundGradientColors,
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -372,7 +545,7 @@ class _NotesPageState extends State<NotesPage>
                   height: 190,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFFF4B41A).withOpacity(0.18),
+                    color: topBubbleColor,
                   ),
                 ),
               ),
@@ -386,7 +559,7 @@ class _NotesPageState extends State<NotesPage>
                   height: 240,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFF143D59).withOpacity(0.12),
+                    color: bottomBubbleColor,
                   ),
                 ),
               ),
@@ -403,19 +576,19 @@ class _NotesPageState extends State<NotesPage>
                         const Icon(Icons.error_outline, color: Colors.red),
                         const SizedBox(width: 8),
                         Expanded(
-                            child: Text(_error!,
-                                style: const TextStyle(color: Colors.red))),
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-
-                // ===================== TOP CONTROLS (FIXED) =====================
                 SizedBox(
-                  height: 56, // pastikan tidak infinite height
+                  height: 56,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // DROPDOWN
                       Expanded(
                         child: Container(
                           padding: EdgeInsets.symmetric(
@@ -423,16 +596,16 @@ class _NotesPageState extends State<NotesPage>
                           margin: EdgeInsets.only(
                               top: 12, left: left, right: 8, bottom: 8),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFFE0B2), Color(0xFFFFF5E4)],
+                            gradient: LinearGradient(
+                              colors: dropdownGradient,
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Color(0xFFF4B41A).withOpacity(0.25),
-                                blurRadius: 14,
+                                color: dropdownShadowColor,
+                                blurRadius: 18,
                                 offset: const Offset(0, 8),
                               ),
                             ],
@@ -440,17 +613,18 @@ class _NotesPageState extends State<NotesPage>
                           constraints: BoxConstraints(minHeight: minHeight),
                           child: (folders.isEmpty)
                               ? Row(
-                                  children: const [
+                                  children: [
                                     Icon(Icons.folder_open,
-                                        color: Color(0xFF143D59)),
-                                    SizedBox(width: 8),
+                                        color: dropdownTextColor),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         'Belum ada folder - ketuk ikon folder +',
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF143D59)),
+                                          fontWeight: FontWeight.w600,
+                                          color: dropdownTextColor,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -461,39 +635,46 @@ class _NotesPageState extends State<NotesPage>
                                             (f) => f.id == selectedFolderId)
                                         ? selectedFolderId
                                         : null,
-                                    hint: const Text('Pilih Folder'),
-                                    borderRadius: BorderRadius.circular(10),
-                                    dropdownColor: const Color(0xFFFFF5E4),
+                                    hint: Text(
+                                      'Pilih Folder',
+                                      style:
+                                          TextStyle(color: dropdownTextColor),
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    dropdownColor: isNight
+                                        ? const Color(0xFF2C3F6B)
+                                        : const Color(0xFFFFF5E4),
                                     isDense: true,
                                     isExpanded: true,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF143D59),
+                                      color: dropdownTextColor,
                                       fontSize: fontSize,
                                     ),
                                     icon: Icon(Icons.keyboard_arrow_down,
-                                        color: const Color(0xFF143D59),
+                                        color: dropdownTextColor,
                                         size: iconSize),
                                     items: folders
-                                        .map((f) => DropdownMenuItem<int>(
-                                              value: f.id,
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.folder,
-                                                      color: const Color(
-                                                          0xFF143D59),
-                                                      size: iconSize - 2),
-                                                  const SizedBox(width: 6),
-                                                  Flexible(
-                                                    child: Text(
-                                                      f.name,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
+                                        .map(
+                                          (f) => DropdownMenuItem<int>(
+                                            value: f.id,
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.folder,
+                                                    color: dropdownTextColor,
+                                                    size: iconSize - 2),
+                                                const SizedBox(width: 6),
+                                                Flexible(
+                                                  child: Text(
+                                                    f.name,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
-                                                ],
-                                              ),
-                                            ))
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
                                         .toList(),
                                     onChanged: (id) async {
                                       setState(() => selectedFolderId = id);
@@ -503,24 +684,22 @@ class _NotesPageState extends State<NotesPage>
                                 ),
                         ),
                       ),
-
-                      // ACTION BUTTONS
                       Container(
                         margin:
                             EdgeInsets.only(top: 12, right: right, bottom: 8),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF0F4C75), Color(0xFF143D59)],
+                          gradient: LinearGradient(
+                            colors: actionsGradient,
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.18),
-                              blurRadius: 12,
+                              color: actionsShadowColor,
+                              blurRadius: 14,
                               offset: const Offset(0, 6),
                             ),
                           ],
@@ -581,40 +760,40 @@ class _NotesPageState extends State<NotesPage>
                     ],
                   ),
                 ),
-                // =================== END TOP CONTROLS (FIXED) ===================
-
-                // SEARCH
                 Padding(
                   padding:
                       EdgeInsets.symmetric(horizontal: left + 2, vertical: 8),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: searchFillColor,
                       borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Color.fromRGBO(0, 0, 0, 0.12),
                           blurRadius: 14,
-                          offset: const Offset(0, 6),
+                          offset: Offset(0, 6),
                         ),
                       ],
                     ),
                     child: TextField(
                       controller: _searchController,
                       textInputAction: TextInputAction.search,
+                      style: TextStyle(color: searchTextColor),
+                      cursorColor: searchIconColor,
                       decoration: InputDecoration(
                         hintText: 'Cari catatan...',
-                        prefixIcon: const Icon(Icons.search),
+                        hintStyle: TextStyle(color: hintTextColor),
+                        prefixIcon: Icon(Icons.search, color: searchIconColor),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.close),
+                                icon: Icon(Icons.close, color: searchIconColor),
                                 onPressed: () {
                                   _searchController.clear();
                                 },
                               )
                             : null,
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: searchFillColor,
                         contentPadding: const EdgeInsets.symmetric(
                             vertical: 14, horizontal: 12),
                         border: OutlineInputBorder(
@@ -625,9 +804,6 @@ class _NotesPageState extends State<NotesPage>
                     ),
                   ),
                 ),
-
-                // LIST
-
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 320),
@@ -658,11 +834,8 @@ class _NotesPageState extends State<NotesPage>
                                     margin:
                                         const EdgeInsets.symmetric(vertical: 8),
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFF143D59),
-                                          Color(0xFF1B5F8C)
-                                        ],
+                                      gradient: LinearGradient(
+                                        colors: dismissGradient,
                                         begin: Alignment.centerLeft,
                                         end: Alignment.centerRight,
                                       ),
@@ -716,28 +889,17 @@ class _NotesPageState extends State<NotesPage>
                                           const Duration(milliseconds: 350),
                                       curve: Curves.easeInOut,
                                       decoration: BoxDecoration(
-                                        gradient: isPinned
-                                            ? const LinearGradient(
-                                                colors: [
-                                                  Color(0xFFFFD180),
-                                                  Color(0xFFFFF1CD)
-                                                ],
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              )
-                                            : const LinearGradient(
-                                                colors: [
-                                                  Color(0xFFFFFFFF),
-                                                  Color(0xFFFFF5E4)
-                                                ],
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              ),
+                                        gradient: LinearGradient(
+                                          colors: isPinned
+                                              ? pinnedCardGradient
+                                              : cardGradient,
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
                                         borderRadius: BorderRadius.circular(24),
                                         boxShadow: [
                                           BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.08),
+                                            color: cardShadowColor,
                                             blurRadius: 14,
                                             offset: const Offset(0, 8),
                                           ),
@@ -750,13 +912,10 @@ class _NotesPageState extends State<NotesPage>
                                         leading: Container(
                                           width: 46,
                                           height: 46,
-                                          decoration: const BoxDecoration(
+                                          decoration: BoxDecoration(
                                             shape: BoxShape.circle,
                                             gradient: LinearGradient(
-                                              colors: [
-                                                Color(0xFF0F4C75),
-                                                Color(0xFF143D59)
-                                              ],
+                                              colors: leadingGradient,
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                             ),
@@ -770,7 +929,7 @@ class _NotesPageState extends State<NotesPage>
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: clamp(w * 0.042, 16, 20),
-                                            color: const Color(0xFF143D59),
+                                            color: cardTitleColor,
                                           ),
                                         ),
                                         subtitle: Padding(
@@ -780,8 +939,8 @@ class _NotesPageState extends State<NotesPage>
                                             note.content,
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: Color(0xFF6B6B6B),
+                                            style: TextStyle(
+                                              color: cardSubtitleColor,
                                               height: 1.4,
                                             ),
                                           ),
@@ -791,7 +950,7 @@ class _NotesPageState extends State<NotesPage>
                                             isPinned
                                                 ? Icons.push_pin
                                                 : Icons.push_pin_outlined,
-                                            color: const Color(0xFFF4B41A),
+                                            color: pinColor,
                                           ),
                                           tooltip: isPinned
                                               ? 'Lepas Pin'
@@ -828,8 +987,6 @@ class _NotesPageState extends State<NotesPage>
                 ),
               ],
             ),
-
-            // FAB
             Positioned(
               bottom: 24,
               right: 24,
@@ -838,7 +995,7 @@ class _NotesPageState extends State<NotesPage>
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0xFFF4B41A).withOpacity(0.4),
+                      color: fabShadowColor,
                       blurRadius: 18,
                       offset: const Offset(0, 10),
                     ),
@@ -911,6 +1068,22 @@ class _CloudConfig {
   final double topFactor;
   final double size;
   final double opacity;
+  final double phase;
+}
+
+class _StarConfig {
+  const _StarConfig({
+    required this.leftFactor,
+    required this.topFactor,
+    required this.size,
+    required this.twinkleSpeed,
+    required this.phase,
+  });
+
+  final double leftFactor;
+  final double topFactor;
+  final double size;
+  final double twinkleSpeed;
   final double phase;
 }
 
