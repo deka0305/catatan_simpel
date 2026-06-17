@@ -83,6 +83,27 @@ class DatabaseHelper {
         orderBy: 'tanggal DESC');
   }
 
+  Future<int> updateUsahaKas({
+    required int id,
+    required String tanggal,
+    required String keterangan,
+    required int nominal,
+    required String tipe,
+  }) async {
+    final db = await instance.database;
+    return await db.update(
+      'usaha_kas',
+      {
+        'tanggal': tanggal,
+        'keterangan': keterangan,
+        'nominal': nominal,
+        'tipe': tipe,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<int> deleteUsahaKas(int id) async {
     final db = await instance.database;
     return await db.delete('usaha_kas', where: 'id = ?', whereArgs: [id]);

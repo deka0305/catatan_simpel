@@ -433,15 +433,17 @@ class _ShootingStarState extends State<_ShootingStar>
   void initState() {
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: widget.duration);
-    _restart();
+    _ctrl.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _scheduleNext();
+    });
+    _scheduleNext();
   }
 
-  void _restart() async {
-    while (mounted) {
-      await Future.delayed(Duration(milliseconds: 700 + math.Random().nextInt(2200)));
-      if (!mounted) return;
-      await _ctrl.forward(from: 0);
-    }
+  void _scheduleNext() {
+    final delay = Duration(milliseconds: 700 + math.Random().nextInt(2200));
+    Future.delayed(delay, () {
+      if (mounted) _ctrl.forward(from: 0);
+    });
   }
 
   @override
@@ -2516,8 +2518,8 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                               ),
                               onPressed: () async {
                                 if (_formKey.currentState!.validate()) {
-                                  await DatabaseHelper.instance.insertUsahaKas(
-                                    folderId: widget.folderId,
+                                  await DatabaseHelper.instance.updateUsahaKas(
+                                    id: kas['id'],
                                     tanggal:
                                         '${tanggal.year}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.day.toString().padLeft(2, '0')}',
                                     keterangan: keteranganController.text,
@@ -2526,8 +2528,6 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
                                             0,
                                     tipe: isMasuk ? 'Pemasukan' : 'Pengeluaran',
                                   );
-                                  await DatabaseHelper.instance
-                                      .deleteUsahaKas(kas['id']);
                                   Navigator.pop(context);
                                   await _loadKas();
                                 }

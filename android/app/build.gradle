@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.catatan_simpel" // JANGAN DIUBAH
-        minSdkVersion 21
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion 34
         versionCode 3 // NAIKKAN setiap update!
         versionName "1.2"
