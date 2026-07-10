@@ -14,6 +14,28 @@ import 'package:file_selector/file_selector.dart' as fsel;
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 
+/// Firebase Realtime Database mengembalikan node sebagai JSON array hanya
+/// jika key anaknya berurutan mulai dari 0; begitu ada id yang bolong
+/// (misal setelah hapus data) atau id tidak mulai dari 0, ia mengembalikan
+/// JSON object (map key->record) alih-alih array. Helper ini menormalkan
+/// kedua bentuk itu menjadi List<Map> supaya kode restore tidak crash.
+List<Map<String, dynamic>> _asRecordList(dynamic decoded) {
+  if (decoded == null) return [];
+  if (decoded is List) {
+    return decoded
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+  if (decoded is Map) {
+    return decoded.values
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+  return [];
+}
+
 // Pastikan fungsi clearAllData sudah ada di db_helper.dart
 extension DatabaseHelperClearAllExt on DatabaseHelper {
   Future<void> clearAllData() async {
@@ -54,12 +76,12 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       final usahaFoldersRes = await http.get(Uri.parse('$baseUrl/usaha_folders.json'));
       final usahaKasRes = await http.get(Uri.parse('$baseUrl/usaha_kas.json'));
 
-      final foldersData = jsonDecode(foldersRes.body) as List?;
-      final notesData = jsonDecode(notesRes.body) as List?;
-      final kasData = jsonDecode(kasRes.body) as List?;
+      final foldersData = _asRecordList(jsonDecode(foldersRes.body));
+      final notesData = _asRecordList(jsonDecode(notesRes.body));
+      final kasData = _asRecordList(jsonDecode(kasRes.body));
 
-      final usahaFoldersData = jsonDecode(usahaFoldersRes.body) as List?;
-      final usahaKasData = jsonDecode(usahaKasRes.body) as List?;
+      final usahaFoldersData = _asRecordList(jsonDecode(usahaFoldersRes.body));
+      final usahaKasData = _asRecordList(jsonDecode(usahaKasRes.body));
 
       // Ambil data lokal
       final localFolders = await DatabaseHelper.instance.getFolders();
@@ -90,53 +112,44 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       int addedUsahaFolders = 0, addedUsahaKas = 0;
 
       // Insert data cloud yang belum ada di lokal
-      if (foldersData != null) {
-        for (var f in foldersData) {
-          if (f != null && f['id'] != null && !folderExists(f)) {
-            await DatabaseHelper.instance.insertFolder(NoteFolder.fromMap(f));
-            addedFolders++;
-          }
+      for (var f in foldersData) {
+        if (f['id'] != null && !folderExists(f)) {
+          await DatabaseHelper.instance
+              .insertFolderWithId(id: f['id'], name: f['name']);
+          addedFolders++;
         }
       }
-      if (notesData != null) {
-        for (var n in notesData) {
-          if (n != null && n['id'] != null && !noteExists(n)) {
-            await DatabaseHelper.instance.insertNote(Note.fromMap(n));
-            addedNotes++;
-          }
+      for (var n in notesData) {
+        if (n['id'] != null && !noteExists(n)) {
+          await DatabaseHelper.instance.insertNoteWithId(Note.fromMap(n));
+          addedNotes++;
         }
       }
-      if (kasData != null) {
-        for (var k in kasData) {
-          if (k != null && k['id'] != null && !kasExists(k)) {
-            await DatabaseHelper.instance.insertKas(Kas.fromMap(k), withId: true);
-            addedKas++;
-          }
+      for (var k in kasData) {
+        if (k['id'] != null && !kasExists(k)) {
+          await DatabaseHelper.instance.insertKas(Kas.fromMap(k), withId: true);
+          addedKas++;
         }
       }
 
       // Insert usaha_folders dan usaha_kas dari cloud (hindari duplikat, gunakan id)
-      if (usahaFoldersData != null) {
-        for (var f in usahaFoldersData) {
-          if (f != null && f['id'] != null && !usahaFolderExists(f)) {
-            await DatabaseHelper.instance.insertUsahaFolderWithId(id: f['id'], nama: f['nama']);
-            addedUsahaFolders++;
-          }
+      for (var f in usahaFoldersData) {
+        if (f['id'] != null && !usahaFolderExists(f)) {
+          await DatabaseHelper.instance.insertUsahaFolderWithId(id: f['id'], nama: f['nama']);
+          addedUsahaFolders++;
         }
       }
-      if (usahaKasData != null) {
-        for (var k in usahaKasData) {
-          if (k != null && k['id'] != null && !usahaKasExists(k)) {
-            await DatabaseHelper.instance.insertUsahaKasWithId(
-              id: k['id'],
-              folderId: k['folder_id'],
-              tanggal: k['tanggal'],
-              keterangan: k['keterangan'],
-              nominal: k['nominal'],
-              tipe: k['tipe'],
-            );
-            addedUsahaKas++;
-          }
+      for (var k in usahaKasData) {
+        if (k['id'] != null && !usahaKasExists(k)) {
+          await DatabaseHelper.instance.insertUsahaKasWithId(
+            id: k['id'],
+            folderId: k['folder_id'],
+            tanggal: k['tanggal'],
+            keterangan: k['keterangan'],
+            nominal: k['nominal'],
+            tipe: k['tipe'],
+          );
+          addedUsahaKas++;
         }
       }
 
@@ -700,38 +713,42 @@ class _SyncAllDataPageState extends State<SyncAllDataPage> {
       final baseUrl = 'https://kas-keluarga-47d2d-default-rtdb.asia-southeast1.firebasedatabase.app';
       final responses = <String>[];
 
+      // Semua node disimpan sebagai object keyed by id (bukan array by posisi)
+      // supaya formatnya sama dengan hasil sync otomatis (FirebaseSyncService)
+      // dan id tidak tertukar/berubah saat di-restore di device lain.
+
       // Folders
       final foldersRes = await http.put(
         Uri.parse('$baseUrl/folders.json'),
-        body: jsonEncode(folders.map((f) => f.toMap()).toList()),
+        body: jsonEncode({for (final f in folders) '${f.id}': f.toMap()}),
       );
       responses.add('folders: ${foldersRes.statusCode}');
 
       // Notes
       final notesRes = await http.put(
         Uri.parse('$baseUrl/notes.json'),
-        body: jsonEncode(allNotes.map((n) => n.toMap()).toList()),
+        body: jsonEncode({for (final n in allNotes) '${n.id}': n.toMap()}),
       );
       responses.add('notes: ${notesRes.statusCode}');
 
       // Kas
       final kasRes = await http.put(
         Uri.parse('$baseUrl/kas.json'),
-        body: jsonEncode(kasList.map((k) => k.toMap()).toList()),
+        body: jsonEncode({for (final k in kasList) '${k.id}': k.toMap()}),
       );
       responses.add('kas: ${kasRes.statusCode}');
 
       // Usaha Folders
       final usahaFoldersRes = await http.put(
         Uri.parse('$baseUrl/usaha_folders.json'),
-        body: jsonEncode(usahaFolders),
+        body: jsonEncode({for (final f in usahaFolders) '${f['id']}': f}),
       );
       responses.add('usaha_folders: ${usahaFoldersRes.statusCode}');
 
       // Usaha Kas
       final usahaKasRes = await http.put(
         Uri.parse('$baseUrl/usaha_kas.json'),
-        body: jsonEncode(allUsahaKas),
+        body: jsonEncode({for (final k in allUsahaKas) '${k['id']}': k}),
       );
       responses.add('usaha_kas: ${usahaKasRes.statusCode}');
 

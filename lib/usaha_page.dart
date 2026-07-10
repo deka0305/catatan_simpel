@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'db_helper.dart';
@@ -501,6 +502,7 @@ class _UsahaPageState extends State<UsahaPage> {
   bool _twinkle1Reverse = false;
   bool _twinkle2Reverse = true;
   bool _isLoadingFolders = true;
+  StreamSubscription<void>? _remoteChangeSub;
 
   // Cache for per-folder kas list futures to avoid flicker on rebuilds
   final Map<int, Future<List<Map<String, dynamic>>>> _kasFutureCache = {};
@@ -534,6 +536,15 @@ class _UsahaPageState extends State<UsahaPage> {
   void initState() {
     super.initState();
     _loadFolders();
+    _remoteChangeSub = DatabaseHelper.instance.onRemoteChange.listen((_) async {
+      await _loadFolders();
+    });
+  }
+
+  @override
+  void dispose() {
+    _remoteChangeSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadFolders() async {
@@ -1494,11 +1505,21 @@ class _UsahaKasDetailPageState extends State<UsahaKasDetailPage> {
   final NumberFormat _idrFormat =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
   bool _isLoadingKas = true;
+  StreamSubscription<void>? _remoteChangeSub;
 
   @override
   void initState() {
     super.initState();
     _loadKas();
+    _remoteChangeSub = DatabaseHelper.instance.onRemoteChange.listen((_) async {
+      await _loadKas();
+    });
+  }
+
+  @override
+  void dispose() {
+    _remoteChangeSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadKas() async {

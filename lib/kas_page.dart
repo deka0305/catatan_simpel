@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'models.dart';
@@ -17,17 +18,30 @@ class _KasPageState extends State<KasPage> {
   List<Kas> kasList = [];
   DateTime today = DateTime.now();
   final NumberFormat _idrFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  StreamSubscription<void>? _remoteChangeSub;
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('id_ID', null); // Inisialisasi locale Indonesia
     _loadKas();
+    _remoteChangeSub = DatabaseHelper.instance.onRemoteChange.listen((_) async {
+      await _loadKas();
+    });
+  }
+
+  @override
+  void dispose() {
+    _remoteChangeSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadKas() async {
-    kasList = await DatabaseHelper.instance.getKasList();
-    setState(() {});
+    final data = await DatabaseHelper.instance.getKasList();
+    if (!mounted) return;
+    setState(() {
+      kasList = data;
+    });
   }
 
   void _showInputKas({Kas? kas}) async {

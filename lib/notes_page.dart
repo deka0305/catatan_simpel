@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -30,10 +31,15 @@ class _NotesPageState extends State<NotesPage>
 
   bool _loading = false;
   String? _error;
+  StreamSubscription<void>? _remoteChangeSub;
 
   @override
   void initState() {
     super.initState();
+    _remoteChangeSub =
+        DatabaseHelper.instance.onRemoteChange.listen((_) async {
+      await _loadFolders();
+    });
     _cloudController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 26),
@@ -70,6 +76,7 @@ class _NotesPageState extends State<NotesPage>
 
   @override
   void dispose() {
+    _remoteChangeSub?.cancel();
     _cloudController.dispose();
     _searchController.dispose();
     super.dispose();

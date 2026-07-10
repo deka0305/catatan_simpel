@@ -5,8 +5,10 @@ import 'notes_page.dart';
 import 'tasks_page.dart';
 import 'kas_page.dart'; // Import KasPage
 import 'usaha_page.dart';
+import 'realtime_sync_manager.dart';
 
 void main() {
+  RealtimeSyncManager.instance.start();
   runApp(const MyApp());
 }
 
