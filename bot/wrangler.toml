@@ -1,3 +1,10 @@
 name = "catatan-simpel-bot"
 main = "worker.js"
 compatibility_date = "2026-09-01"
+
+# Jam dalam UTC (WIB = UTC+7)
+[triggers]
+crons = [
+  "0 23 * * *",          # 06.00 WIB: laporan kemarin
+  "0 2,5,8,11,14 * * *", # 09/12/15/18/21 WIB: pengingat input
+]
