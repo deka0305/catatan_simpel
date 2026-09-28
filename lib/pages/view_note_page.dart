@@ -1,28 +1,40 @@
 import 'package:flutter/material.dart';
-import 'db_helper.dart';
-import 'models.dart';
-import 'widgets/notebook_paper.dart';
+import '../services/db_helper.dart';
+import '../models.dart';
+import '../widgets/notebook_paper.dart';
 
-class AddNotePage extends StatefulWidget {
-  final int folderId;
-  const AddNotePage({super.key, required this.folderId});
+class ViewNotePage extends StatefulWidget {
+  final Note note;
+  final bool isEditing; // Tambahkan ini
+  const ViewNotePage(
+      {super.key, required this.note, this.isEditing = false}); // Ubah ini
 
   @override
-  State<AddNotePage> createState() => _AddNotePageState();
+  State<ViewNotePage> createState() => _ViewNotePageState();
 }
 
-class _AddNotePageState extends State<AddNotePage> {
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
+class _ViewNotePageState extends State<ViewNotePage> {
+  late TextEditingController _titleController;
+  late TextEditingController _contentController;
+  late bool _isEditing; // Ubah jadi late
 
-  void _saveNote() async {
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.note.title);
+    _contentController = TextEditingController(text: widget.note.content);
+    _isEditing = widget.isEditing; // Inisialisasi dari parameter
+  }
+
+  void _saveEdit() async {
     if (_titleController.text.isNotEmpty ||
         _contentController.text.isNotEmpty) {
-      await DatabaseHelper.instance.insertNote(
+      await DatabaseHelper.instance.updateNote(
         Note(
+          id: widget.note.id,
           title: _titleController.text,
           content: _contentController.text,
-          folderId: widget.folderId,
+          folderId: widget.note.folderId,
         ),
       );
       Navigator.pop(context, true);
@@ -34,12 +46,24 @@ class _AddNotePageState extends State<AddNotePage> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        title: const Text('Catatan Baru'),
+        title: _isEditing
+            ? const Text('Edit Catatan')
+            : const Text('Detail Catatan'),
         actions: [
-          IconButton(
-            icon: Icon(Icons.save, color: Theme.of(context).colorScheme.secondary),
-            onPressed: _saveNote,
-          ),
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _saveEdit,
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                setState(() {
+                  _isEditing = true;
+                });
+              },
+            ),
         ],
       ),
       body: Padding(
@@ -49,6 +73,7 @@ class _AddNotePageState extends State<AddNotePage> {
           children: [
             TextField(
               controller: _titleController,
+              enabled: _isEditing,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -61,29 +86,30 @@ class _AddNotePageState extends State<AddNotePage> {
               ),
             ),
             const SizedBox(height: 8),
-            // Tombol simbol
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Ceklis',
-                  icon: const Icon(Icons.check_box_outlined,
-                      color: Color(0xFFF4B41A)),
-                  onPressed: () => _insertLinePrefix('✔ '),
-                ),
-                IconButton(
-                  tooltip: 'Bullet',
-                  icon: const Icon(Icons.circle,
-                      size: 18, color: Color(0xFFF4B41A)),
-                  onPressed: () => _insertLinePrefix('• '),
-                ),
-                IconButton(
-                  tooltip: 'Urutan',
-                  icon: const Icon(Icons.format_list_numbered,
-                      color: Color(0xFFF4B41A)),
-                  onPressed: _insertNumberedList,
-                ),
-              ],
-            ),
+            if (_isEditing) ...[
+              Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Ceklis',
+                    icon: const Icon(Icons.check_box_outlined,
+                        color: Color(0xFFF4B41A)),
+                    onPressed: () => _insertSymbol('✔ '),
+                  ),
+                  IconButton(
+                    tooltip: 'Bullet',
+                    icon: const Icon(Icons.circle,
+                        size: 18, color: Color(0xFFF4B41A)),
+                    onPressed: () => _insertSymbol('• '),
+                  ),
+                  IconButton(
+                    tooltip: 'Urutan',
+                    icon: const Icon(Icons.format_list_numbered,
+                        color: Color(0xFFF4B41A)),
+                    onPressed: () => _insertNumberedList(),
+                  ),
+                ],
+              ),
+            ],
             Expanded(
               child: Builder(
                 builder: (context) {
@@ -99,6 +125,7 @@ class _AddNotePageState extends State<AddNotePage> {
                     baselineShift: -0.5,
                     child: TextField(
                       controller: _contentController,
+                      enabled: _isEditing,
                       style: contentStyle,
                       strutStyle: const StrutStyle(
                         fontSize: 18,
@@ -125,20 +152,13 @@ class _AddNotePageState extends State<AddNotePage> {
     );
   }
 
-  void _insertLinePrefix(String prefix) {
+  void _insertSymbol(String symbol) {
     final text = _contentController.text;
     final selection = _contentController.selection;
-    final lines = text.split('\n');
-    int currentLineIndex =
-        text.substring(0, selection.start).split('\n').length - 1;
-    if (currentLineIndex < 0 || currentLineIndex >= lines.length) return;
-    final line = lines[currentLineIndex];
-    if (line.startsWith(prefix)) return;
-    lines[currentLineIndex] = prefix + line;
-    final newText = lines.join('\n');
-    int newOffset = selection.start + prefix.length;
+    final newText = text.replaceRange(selection.start, selection.end, symbol);
     _contentController.text = newText;
-    _contentController.selection = TextSelection.collapsed(offset: newOffset);
+    _contentController.selection =
+        TextSelection.collapsed(offset: selection.start + symbol.length);
   }
 
   void _insertNumberedList() {
@@ -148,22 +168,31 @@ class _AddNotePageState extends State<AddNotePage> {
     int currentLineIndex =
         text.substring(0, selection.start).split('\n').length - 1;
     if (currentLineIndex < 0 || currentLineIndex >= lines.length) return;
-    final line = lines[currentLineIndex];
-    // Cari nomor urut otomatis
+    // Hitung nomor urut berdasarkan baris sebelumnya yang sudah ada nomor
     int number = 1;
-    for (int i = 0; i < currentLineIndex; i++) {
+    for (int i = currentLineIndex - 1; i >= 0; i--) {
       final l = lines[i];
       final match = RegExp(r'^(\d+)\. ').firstMatch(l);
       if (match != null) {
         final n = int.tryParse(match.group(1)!);
-        if (n != null && n >= number) number = n + 1;
+        if (n != null) {
+          number = n + 1;
+          break;
+        }
       }
     }
+    // Jika baris sudah ada nomor, ganti dengan nomor baru
+    final line = lines[currentLineIndex];
+    final lineWithoutNumber = line.replaceFirst(RegExp(r'^(✔ |• |\d+\. )'), '');
     final prefix = '$number. ';
-    if (line.startsWith(prefix)) return;
-    lines[currentLineIndex] = prefix + line;
+    lines[currentLineIndex] = prefix + lineWithoutNumber;
     final newText = lines.join('\n');
-    int newOffset = selection.start + prefix.length;
+    // Hitung offset baru setelah prefix
+    int lineStart = 0;
+    for (int i = 0; i < currentLineIndex; i++) {
+      lineStart += lines[i].length + 1; // +1 for \n
+    }
+    int newOffset = lineStart + prefix.length;
     _contentController.text = newText;
     _contentController.selection = TextSelection.collapsed(offset: newOffset);
   }

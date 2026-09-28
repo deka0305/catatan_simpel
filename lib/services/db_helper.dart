@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'models.dart';
+import '../models.dart';
 import 'firebase_sync_service.dart';
 
 class DatabaseHelper {
@@ -491,15 +491,6 @@ class DatabaseHelper {
     return result.map((e) => NoteFolder.fromMap(e)).toList();
   }
 
-  Future<int> updateFolder(NoteFolder folder) async {
-    final db = await instance.database;
-    final result = await db.update('folders', folder.toMap(),
-        where: 'id = ?', whereArgs: [folder.id]);
-    await _enqueueOutbox(
-        'folders', folder.id!, 'patch', {'name': folder.name});
-    return result;
-  }
-
   Future<int> deleteFolder(int id) async {
     final db = await instance.database;
     final result = await db.delete('folders', where: 'id = ?', whereArgs: [id]);
@@ -613,27 +604,5 @@ class DatabaseHelper {
     }
     await _enqueueOutbox('kas', map['id'] as int, 'put', map);
     return id;
-  }
-
-  Future<int> updateKas(Kas kas) async {
-    final db = await instance.database;
-    final map = kas.toMap();
-    final result =
-        await db.update('kas', map, where: 'id = ?', whereArgs: [kas.id]);
-    await _enqueueOutbox('kas', kas.id!, 'patch', map);
-    return result;
-  }
-
-  Future<List<Kas>> getKasList() async {
-    final db = await instance.database;
-    final result = await db.query('kas', orderBy: 'tanggal DESC');
-    return result.map((e) => Kas.fromMap(e)).toList();
-  }
-
-  Future<int> deleteKas(int id) async {
-    final db = await instance.database;
-    final result = await db.delete('kas', where: 'id = ?', whereArgs: [id]);
-    await _enqueueOutbox('kas', id, 'delete', null);
-    return result;
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'db_helper.dart';
+import '../services/db_helper.dart';
 import 'package:intl/intl.dart';
 
 // Custom wave clipper for app bar
@@ -417,10 +417,11 @@ class _ParallaxCloudState extends State<_ParallaxCloud>
 }
 
 class _ShootingStar extends StatefulWidget {
-  final Duration duration;
-  final Alignment begin;
-  final Alignment end;
-  const _ShootingStar({Key? key, this.duration = const Duration(seconds: 3), this.begin = const Alignment(1.2, -0.9), this.end = const Alignment(-1.2, -0.3)}) : super(key: key);
+  const _ShootingStar();
+
+  static const _duration = Duration(seconds: 3);
+  static const _begin = Alignment(1.2, -0.9);
+  static const _end = Alignment(-1.2, -0.3);
 
   @override
   State<_ShootingStar> createState() => _ShootingStarState();
@@ -433,7 +434,7 @@ class _ShootingStarState extends State<_ShootingStar>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: widget.duration);
+    _ctrl = AnimationController(vsync: this, duration: _ShootingStar._duration);
     _ctrl.addStatusListener((status) {
       if (status == AnimationStatus.completed) _scheduleNext();
     });
@@ -459,8 +460,8 @@ class _ShootingStarState extends State<_ShootingStar>
       animation: _ctrl,
       builder: (context, _) {
         final t = Curves.easeOutQuart.transform(_ctrl.value);
-        final x = lerpDouble(widget.begin.x, widget.end.x, t)!;
-        final y = lerpDouble(widget.begin.y, widget.end.y, t)!;
+        final x = lerpDouble(_ShootingStar._begin.x, _ShootingStar._end.x, t)!;
+        final y = lerpDouble(_ShootingStar._begin.y, _ShootingStar._end.y, t)!;
         return Align(
           alignment: Alignment(x, y),
           child: Transform.rotate(
@@ -1271,219 +1272,6 @@ class _UsahaPageState extends State<UsahaPage> {
         backgroundColor: const Color(0xFFF4B41A),
         foregroundColor: const Color(0xFF143D59),
         tooltip: 'Tambah Folder',
-      ),
-    );
-  }
-}
-
-class _FolderMiniIcon extends StatelessWidget {
-  final double width;
-  final double height;
-
-  const _FolderMiniIcon({super.key, this.width = 44, this.height = 30});
-
-  @override
-  Widget build(BuildContext context) {
-    const bodyColor = Color(0xFFFFD36E); // badan folder
-    const tabColor = Color(0xFFFFE29C); // tab folder
-    const borderColor = Color(0xFFF1C85A); // garis folder
-
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Badan folder
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            top: height * 0.28,
-            child: Container(
-              decoration: BoxDecoration(
-                color: bodyColor,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: borderColor, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Tab folder
-          Positioned(
-            left: width * 0.06,
-            top: 0,
-            width: width * 0.46,
-            height: height * 0.42,
-            child: Container(
-              decoration: BoxDecoration(
-                color: tabColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(5),
-                  topRight: Radius.circular(5),
-                ),
-                border: Border.all(color: borderColor, width: 1),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatPill extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String label;
-  final String value;
-  const _StatPill({
-    required this.color,
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white24, width: 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color,
-              ),
-              padding: const EdgeInsets.all(7),
-              child: Icon(icon, size: 16, color: Colors.white),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(label,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                  Text(value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String title;
-  final String value;
-  final double? width;
-
-  const _SummaryCard({
-    required this.color,
-    required this.icon,
-    required this.title,
-    required this.value,
-    this.width,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bgGradient = LinearGradient(
-      colors: [
-        color.withOpacity(0.12),
-        color.withOpacity(0.06),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-
-    return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: bgGradient,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.30)),
-        boxShadow: [
-          BoxShadow(
-              color: color.withOpacity(0.10),
-              blurRadius: 12,
-              offset: const Offset(0, 6)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [color, color.withOpacity(0.75)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            padding: const EdgeInsets.all(8),
-            child: Icon(icon, size: 18, color: Colors.white),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: color.withOpacity(0.95),
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (child, anim) =>
-                      FadeTransition(opacity: anim, child: child),
-                  child: Text(
-                    value,
-                    key: ValueKey(value),
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

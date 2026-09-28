@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -26,21 +25,9 @@ class FirebaseSyncService {
   Future<bool> _send(String method, String path,
       [Map<String, dynamic>? body]) async {
     try {
-      final uri = Uri.parse('$databaseUrl/$path.json');
-      http.Response res;
-      switch (method) {
-        case 'PUT':
-          res = await http.put(uri, body: jsonEncode(body));
-          break;
-        case 'PATCH':
-          res = await http.patch(uri, body: jsonEncode(body));
-          break;
-        case 'DELETE':
-          res = await http.delete(uri);
-          break;
-        default:
-          return false;
-      }
+      final req = http.Request(method, Uri.parse('$databaseUrl/$path.json'));
+      if (body != null) req.body = jsonEncode(body);
+      final res = await req.send();
       return res.statusCode >= 200 && res.statusCode < 300;
     } catch (e) {
       debugPrint('FirebaseSyncService: gagal sync "$path": $e');
@@ -48,25 +35,9 @@ class FirebaseSyncService {
     }
   }
 
-  /// Timpa seluruh node [path] dengan [data] (dipakai untuk insert).
-  void pushSet(String path, Map<String, dynamic> data) {
-    unawaited(_send('PUT', path, data));
-  }
-
-  /// Update sebagian field di [path] (dipakai untuk update, agar field
-  /// lain yang sudah ada di cloud tidak ikut tertimpa/hilang).
-  void pushUpdate(String path, Map<String, dynamic> data) {
-    unawaited(_send('PATCH', path, data));
-  }
-
-  /// Hapus node [path] dari cloud.
-  void pushDelete(String path) {
-    unawaited(_send('DELETE', path));
-  }
-
-  /// Versi yang menunggu hasil (dipakai oleh outbox queue di db_helper.dart
-  /// untuk tahu apakah perlu di-retry nanti atau sudah boleh dihapus dari
-  /// antrian).
+  /// Dipakai oleh outbox queue di db_helper.dart: true = sukses dan entri
+  /// boleh dihapus dari antrian, false = retry nanti.
+  /// PUT menimpa seluruh node, PATCH hanya field yang dikirim.
   Future<bool> trySet(String path, Map<String, dynamic> data) =>
       _send('PUT', path, data);
   Future<bool> tryUpdate(String path, Map<String, dynamic> data) =>

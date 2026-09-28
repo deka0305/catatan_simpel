@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'db_helper.dart';
-import 'models.dart';
+import '../services/db_helper.dart';
+import '../models.dart';
 
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
