@@ -140,7 +140,7 @@ async function onMessage(msg, env) {
       'Cara 1 - pilih sekali lewat /folder, lalu:\n#keluar 50000 bensin\n#masuk 200rb jual kopi\n#catat beli sabun\n\n' +
       'Cara 2 - langsung sebut tujuan:\n#keluar 15rb parkir @toko\n#catat @belanja/bulanan beras 5kg\n(cukup sebagian nama, tanpa spasi)\n\n' +
       'Tanggal lain: #keluar 50rb bensin kemarin / 25/9\n\n' +
-      'Saldo:\n/saldo = folder aktif\n/saldo @toko\n/saldo semua\n\nLaporan:\n/hariini · /hariini kemarin · /hariini 25/9\n/bulan · /bulan lalu · /bulan agustus · /bulan 12/2025\n(tambah @toko untuk satu folder)\nOtomatis: laporan jam 06.00, pengingat tiap 3 jam (09-21)\n\n/hapus = batalkan input terakhir');
+      'Saldo:\n/saldo = folder aktif\n/saldo @toko\n/saldo semua\n\nLaporan:\n/hariini · /hariini kemarin · /hariini 25/9\n/bulan · /bulan lalu · /bulan agustus · /bulan 12/2025\n(tambah @toko untuk satu folder)\nOtomatis: laporan jam 06.00, pengingat jam 21.00\n\n/hapus = batalkan input terakhir');
   }
 
   if (cmd === '/folder') return reply(env, chat, 'Pilih jenis folder yang mau diaktifkan:', {
@@ -431,10 +431,9 @@ async function laporanPagi(env) {
   }
 }
 
-/** Cron tiap 3 jam (09-21 WIB): ingatkan input hari ini. */
+/** Cron 21.00 WIB (sekali sehari): ingatkan input hari ini. */
 async function pengingat(env) {
   const rows = await kasDengan(today(), null);
-  const jam = new Date(Date.now() + 7 * 3600e3).getUTCHours(); // jam WIB
   let text;
   if (!rows.length) {
     text = '⏰ Belum ada transaksi hari ini.\nAda pengeluaran/pemasukan yang belum dicatat?\nContoh: #keluar 15rb parkir';
@@ -443,7 +442,7 @@ async function pengingat(env) {
     const keluar = rows.filter((k) => k.tipe === 'Pengeluaran').reduce((a, k) => a + k.nominal, 0);
     text = `⏰ Sudah ${rows.length} transaksi hari ini\n🟢 ${rupiah(masuk)} · 🔴 ${rupiah(keluar)}\nAda yang belum dicatat? Detail: /hariini`;
   }
-  if (jam >= 21) text += '\n\n🌙 Besok jam 06.00 laporan lengkap dikirim.';
+  text += '\n\n🌙 Besok jam 06.00 laporan lengkap dikirim.';
   await reply(env, env.ALLOWED_ID, text);
 }
 
